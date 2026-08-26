@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Skill reference files — not part of this Next.js workspace
+    "agent/**",
+    ".agents/**",
   ]),
 ]);
 
