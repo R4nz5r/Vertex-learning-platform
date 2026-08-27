@@ -8,9 +8,9 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  video:   "bg-primary-100 text-primary-500",
-  lesson:  "bg-indigo-100 text-indigo-700",
-  popular: "bg-primary-100 text-primary-500 font-semibold",
+  video:   "bg-primary-100 text-primary-500 border border-transparent",
+  lesson:  "bg-emerald-50 text-emerald-600 border border-transparent",
+  popular: "bg-transparent text-primary-500 border border-primary-500",
 };
 
 const labels: Record<BadgeVariant, string> = {
@@ -23,7 +23,7 @@ export function Badge({ variant, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 text-[11px] font-medium tracking-wider uppercase",
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-semibold tracking-wider uppercase",
         "rounded-[var(--radius-xs)]",
         variantClasses[variant],
         className,

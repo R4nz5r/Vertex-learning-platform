@@ -10,6 +10,9 @@ export function ProgressBar({ value, label, className }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, value));
   return (
     <div className={cn("space-y-2", className)}>
+      {label !== undefined && (
+        <p className="text-small text-neutral-500 text-right">{label}</p>
+      )}
       <div
         className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden"
         role="progressbar"
@@ -23,9 +26,6 @@ export function ProgressBar({ value, label, className }: ProgressBarProps) {
           style={{ width: `${clamped}%` }}
         />
       </div>
-      {label !== undefined && (
-        <p className="text-small text-neutral-500">{label}</p>
-      )}
     </div>
   );
 }

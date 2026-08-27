@@ -31,9 +31,9 @@
   --color-border:      #E2E8F0;
   --color-muted:       #64748B;
 
-  /* Badge accent (lesson indigo) */
-  --color-indigo-100: #EEF0FE;
-  --color-indigo-700: #4F46E5;
+  /* Badge accent (lesson green) */
+  --color-emerald-50:  #ECFDF5;
+  --color-emerald-600: #059669;
 
   /* Radius */
   --radius-xs:   4px;
