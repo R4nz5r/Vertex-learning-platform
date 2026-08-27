@@ -66,13 +66,13 @@ export default function DesignSystemPage() {
     <div className="min-h-screen bg-white">
 
       {/* ── Page content ── max-w matches the reference proportions */}
-      <main className="max-w-[960px] mx-auto px-8">
+      <main className="max-w-[960px] mx-auto px-4 sm:px-8">
 
         {/* ════════════════════════════════════════════════════════════
             ROW 1  |  Title block  (left 30%)  +  01 Colors (right 70%)
             No top divider — first section
         ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-[260px_1fr] gap-16 py-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-16 py-12 items-start">
 
           {/* Title block */}
           <div>
@@ -123,7 +123,7 @@ export default function DesignSystemPage() {
         {/* ════════════════════════════════════════════════════════════
             ROW 2  |  02 Typography (left)  +  03 Type Scale (right)
         ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-[260px_1fr] gap-16 py-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-16 py-12 items-start">
 
           {/* 02 Typography */}
           <div>
@@ -145,7 +145,8 @@ export default function DesignSystemPage() {
           {/* 03 Type Scale */}
           <div>
             <SectionLabel num="03" title="Type Scale" />
-            <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="w-full text-left border-collapse min-w-[480px]">
               <thead>
                 <tr className="border-b border-neutral-100">
                   {["Style", "Font", "Size / Line Height", "Weight", "Use"].map((h) => (
@@ -176,6 +177,7 @@ export default function DesignSystemPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -184,7 +186,7 @@ export default function DesignSystemPage() {
         {/* ════════════════════════════════════════════════════════════
             ROW 3  |  04 Spacing (left)  +  05 Radius & Shadows (right)
         ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-2 gap-16 py-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 py-12 items-start">
 
           {/* 04 Spacing */}
           <div>
@@ -236,7 +238,7 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="text-small font-semibold text-neutral-700 mb-3">Shadows</p>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Sm", shadow: "0 1px 2px 0 rgba(15,23,42,0.05)",     css: "0 1px 2px 0\nrgba(15,23,42,0.05)" },
                 { label: "Md", shadow: "0 4px 12px -2px rgba(15,23,42,0.08)", css: "0 4px 12px -2px\nrgba(15,23,42,0.08)" },
@@ -262,7 +264,7 @@ export default function DesignSystemPage() {
         {/* ════════════════════════════════════════════════════════════
             ROW 4  |  06 Icons  |  07 Buttons  |  08 Inputs
         ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-[180px_1fr_200px] gap-10 py-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr_200px] gap-10 py-12 items-start">
 
           {/* 06 Icons */}
           <div>
@@ -291,7 +293,8 @@ export default function DesignSystemPage() {
           {/* 07 Buttons */}
           <div>
             <SectionLabel num="07" title="Buttons" />
-            <table className="text-left border-collapse w-full mb-5">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="text-left border-collapse w-full mb-5 min-w-[520px]">
               <thead>
                 <tr>
                   <th className="pb-3 pr-5 w-16 text-[11px] font-medium text-neutral-400" />
@@ -303,6 +306,21 @@ export default function DesignSystemPage() {
               <tbody>
                 <tr>
                   <td className="py-2.5 pr-5 text-small text-neutral-500 whitespace-nowrap">Default</td>
+                  <td className="py-2.5 pr-5"><Button variant="primary" size="md" className="pointer-events-none">Get Started</Button></td>
+                  <td className="py-2.5 pr-5"><Button variant="secondary" size="md" className="pointer-events-none">Explore Courses</Button></td>
+                  <td className="py-2.5 pr-5">
+                    <Button variant="tertiary" size="md" className="gap-1 pointer-events-none">
+                      View Lesson <ExternalLink size={13} aria-hidden />
+                    </Button>
+                  </td>
+                  <td className="py-2.5">
+                    <Button variant="text" size="md" className="gap-1 pointer-events-none">
+                      Watch Video <Play size={13} className="fill-primary-500" strokeWidth={0} aria-hidden />
+                    </Button>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-5 text-small text-neutral-500">Hover</td>
                   <td className="py-2.5 pr-5"><Button variant="primary" size="md">Get Started</Button></td>
                   <td className="py-2.5 pr-5"><Button variant="secondary" size="md">Explore Courses</Button></td>
                   <td className="py-2.5 pr-5">
@@ -312,21 +330,6 @@ export default function DesignSystemPage() {
                   </td>
                   <td className="py-2.5">
                     <Button variant="text" size="md" className="gap-1">
-                      Watch Video <Play size={13} className="fill-primary-500" strokeWidth={0} aria-hidden />
-                    </Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 pr-5 text-small text-neutral-500">Hover</td>
-                  <td className="py-2.5 pr-5"><Button variant="primary" size="md" className="!bg-primary-600">Get Started</Button></td>
-                  <td className="py-2.5 pr-5"><Button variant="secondary" size="md" className="!bg-primary-100">Explore Courses</Button></td>
-                  <td className="py-2.5 pr-5">
-                    <Button variant="tertiary" size="md" className="!bg-neutral-50 gap-1">
-                      View Lesson <ExternalLink size={13} aria-hidden />
-                    </Button>
-                  </td>
-                  <td className="py-2.5">
-                    <Button variant="text" size="md" className="underline gap-1">
                       Watch Video <Play size={13} className="fill-primary-500" strokeWidth={0} aria-hidden />
                     </Button>
                   </td>
@@ -348,6 +351,7 @@ export default function DesignSystemPage() {
                 </tr>
               </tbody>
             </table>
+            </div>
             <p className="text-small font-semibold text-neutral-700 mb-1.5">Button Specs</p>
             {["Height: 44px (default)", "Padding: 0 16px (lg), 0 12px (md)", "Radius: 12px", "Font: Inter Medium (14–16px)"].map((s) => (
               <p key={s} className="text-[11px] text-neutral-500">· {s}</p>
@@ -381,7 +385,7 @@ export default function DesignSystemPage() {
         {/* ════════════════════════════════════════════════════════════
             ROW 5  |  09 Badges  |  10 Status  |  11 Progress Bar
         ════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-3 gap-10 py-12 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 py-12 items-start">
           {/* 09 Badges */}
           <div>
             <SectionLabel num="09" title="Badges / Tags" />
@@ -419,7 +423,7 @@ export default function DesignSystemPage() {
         ════════════════════════════════════════════════════════════ */}
         <div className="py-12">
           <SectionLabel num="12" title="Cards" />
-          <div className="grid grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <div>
               <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider mb-3">Course Card</p>
               <CourseCard
@@ -468,7 +472,7 @@ export default function DesignSystemPage() {
         ════════════════════════════════════════════════════════════ */}
         <div className="py-12">
           <SectionLabel num="13" title="Navigation" />
-          <div className="grid grid-cols-3 gap-10 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
             {/* Inline nav representation — not the full Navbar component squeezed */}
             <div>
               <div className="flex items-center gap-6 h-11 px-4 border border-neutral-200 rounded-[var(--radius-md)] bg-white">
@@ -501,7 +505,7 @@ export default function DesignSystemPage() {
         ════════════════════════════════════════════════════════════ */}
         <div className="py-12">
           <SectionLabel num="14" title="Principles" />
-          <div className="grid grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { Icon: Eye,             title: "Clarity First",  desc: "Every element should communicate clearly." },
               { Icon: Grid2x2,         title: "Consistency",    desc: "Use components and patterns consistently across the platform." },
@@ -524,7 +528,7 @@ export default function DesignSystemPage() {
       </main>
 
       <footer className="border-t border-neutral-100 mt-4">
-        <div className="max-w-[960px] mx-auto px-8 py-6 flex items-center justify-between">
+        <div className="max-w-[960px] mx-auto px-4 sm:px-8 py-6 flex items-center justify-between">
           <Logo size={18} />
           <p className="text-small text-neutral-400">v1.0 · May 2025</p>
         </div>
