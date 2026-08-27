@@ -8,6 +8,7 @@
   --font-sans:    var(--font-inter), system-ui, sans-serif;
 
   /* Primary */
+  --color-primary-700: #C2410C;
   --color-primary-600: #EA580C;
   --color-primary-500: #F97316;
   --color-primary-400: #FB923C;
@@ -31,9 +32,10 @@
   --color-border:      #E2E8F0;
   --color-muted:       #64748B;
 
-  /* Badge accent (lesson indigo) */
-  --color-indigo-100: #EEF0FE;
-  --color-indigo-700: #4F46E5;
+  /* Badge accent (lesson green) */
+  --color-emerald-50:  #ECFDF5;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
 
   /* Radius */
   --radius-xs:   4px;

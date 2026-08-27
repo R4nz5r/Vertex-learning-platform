@@ -21,21 +21,25 @@ export function ResourceCard({
 }: ResourceCardProps) {
   return (
     <Card className={cn("flex flex-col gap-3", className)}>
-      <div className="flex items-start justify-between">
-        <FileText className="w-5 h-5 text-neutral-500" aria-hidden="true" />
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-[var(--radius-sm)] bg-neutral-100 flex items-center justify-center shrink-0">
+          <FileText className="w-5 h-5 text-neutral-500" aria-hidden="true" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-body font-semibold text-neutral-900 leading-tight">{title}</p>
+        </div>
+      </div>
+      <p className="text-small text-neutral-500 leading-relaxed">{description}</p>
+      <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-[11px] text-neutral-400">
+        <span>{fileType} · {fileSize}</span>
         <a
           href={href}
           className="text-neutral-400 hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm"
           aria-label={`Open ${title}`}
         >
-          <ExternalLink className="w-4 h-4" aria-hidden="true" />
+          <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
         </a>
       </div>
-      <p className="text-body font-semibold text-neutral-900 leading-tight">{title}</p>
-      <p className="text-small text-neutral-500 leading-relaxed">{description}</p>
-      <p className="text-[11px] text-neutral-400 border-t border-neutral-100 pt-3">
-        {fileType} · {fileSize}
-      </p>
     </Card>
   );
 }
