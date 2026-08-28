@@ -3,15 +3,29 @@ import { cn } from "@/lib/utils";
 
 interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   className?: string;
+  inputClassName?: string;
+  sizeVariant?: "md" | "lg";
   showShortcut?: boolean;
 }
 
-export function SearchInput({ className, showShortcut = true, placeholder = "Search anything...", ...props }: SearchInputProps) {
+export function SearchInput({
+  className,
+  inputClassName,
+  sizeVariant = "md",
+  showShortcut = true,
+  placeholder = "Search anything...",
+  ...props
+}: SearchInputProps) {
+  const isLg = sizeVariant === "lg";
+
   return (
-    <div className={cn("relative flex items-center", className)}>
+    <div className={cn("relative flex items-center w-full", className)}>
       <label className="sr-only" htmlFor="search-input">Search</label>
       <Search
-        className="absolute left-4 w-4 h-4 text-neutral-500 pointer-events-none"
+        className={cn(
+          "absolute pointer-events-none text-neutral-400",
+          isLg ? "left-4 w-5 h-5" : "left-4 w-4 h-4 text-neutral-500",
+        )}
         aria-hidden="true"
       />
       <input
@@ -19,18 +33,28 @@ export function SearchInput({ className, showShortcut = true, placeholder = "Sea
         type="search"
         placeholder={placeholder}
         className={cn(
-          "w-full h-11 pl-10 pr-16 text-body text-neutral-700 placeholder:text-neutral-400",
-          "bg-white border border-neutral-200 rounded-[var(--radius-md)]",
-          "outline-none transition-colors duration-150",
+          "w-full bg-white border border-neutral-200 outline-none transition-colors duration-150",
           "focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20",
+          isLg
+            ? "h-[52px] pl-12 pr-16 text-[15px] text-neutral-700 placeholder:text-neutral-400 rounded-[12px] shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
+            : "h-11 pl-10 pr-16 text-body text-neutral-700 placeholder:text-neutral-400 rounded-[var(--radius-md)]",
+          inputClassName,
         )}
         {...props}
       />
       {showShortcut && (
-        <kbd className="absolute right-3 inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] text-neutral-400 border border-neutral-200 rounded font-sans select-none">
+        <kbd
+          className={cn(
+            "absolute inline-flex items-center gap-0.5 text-neutral-400 border border-neutral-200 font-sans select-none",
+            isLg
+              ? "right-3.5 px-2 py-1 text-[11px] font-medium rounded-[6px] bg-neutral-50/60"
+              : "right-3 px-1.5 py-0.5 text-[10px] rounded",
+          )}
+        >
           ⌘ K
         </kbd>
       )}
     </div>
   );
 }
+
