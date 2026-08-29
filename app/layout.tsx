@@ -26,7 +26,11 @@ export const metadata: Metadata = {
     "Vertex is an AI-powered learning platform. Search lessons by topic and jump straight to the exact moment in the video where it's taught.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body suppressHydrationWarning>
