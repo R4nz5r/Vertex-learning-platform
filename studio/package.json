@@ -9,7 +9,9 @@
     "build": "sanity build",
     "deploy": "sanity deploy",
     "deploy-graphql": "sanity graphql deploy",
-    "typegen": "sanity schema extract --enforce-required-fields && sanity typegen generate"
+    "typegen": "sanity schema extract --enforce-required-fields && sanity typegen generate",
+    "seed:build": "node scripts/seed/build-ndjson.mjs",
+    "seed:import": "sanity dataset import scripts/seed/seed.ndjson production --replace"
   },
   "keywords": [
     "sanity"

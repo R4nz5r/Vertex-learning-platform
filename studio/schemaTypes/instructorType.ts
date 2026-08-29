@@ -40,8 +40,9 @@ export const instructorType = defineType({
     defineField({
       name: 'expertise',
       title: 'Expertise',
-      type: 'string',
-      description: 'Short tagline, e.g. "AI & Machine Learning"',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Areas of expertise / tags',
     }),
     defineField({
       name: 'bio',

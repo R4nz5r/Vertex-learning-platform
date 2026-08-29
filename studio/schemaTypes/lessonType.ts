@@ -33,8 +33,8 @@ export const lessonType = defineType({
         }),
     }),
     defineField({
-      name: 'poster',
-      title: 'Poster / Thumbnail',
+      name: 'thumbnail',
+      title: 'Thumbnail',
       type: 'image',
       options: {
         hotspot: true,
@@ -49,9 +49,10 @@ export const lessonType = defineType({
     }),
     defineField({
       name: 'duration',
-      title: 'Duration',
-      type: 'string',
-      description: 'e.g. "12:30"',
+      title: 'Duration (seconds)',
+      type: 'number',
+      description: 'Duration in seconds, e.g. 350',
+      validation: (rule) => rule.min(0),
     }),
     defineField({
       name: 'freePreview',
@@ -66,6 +67,7 @@ export const lessonType = defineType({
       type: 'number',
       description: 'For display purposes',
       initialValue: 0,
+      validation: (rule) => rule.min(0),
     }),
     defineField({
       name: 'notes',
@@ -97,19 +99,9 @@ export const lessonType = defineType({
           title: 'Resource',
           fields: [
             defineField({
-              name: 'resourceType',
+              name: 'type',
               title: 'Type',
               type: 'string',
-              options: {
-                list: [
-                  {title: 'Documentation', value: 'documentation'},
-                  {title: 'GitHub Repo', value: 'github'},
-                  {title: 'Article', value: 'article'},
-                  {title: 'Video', value: 'video'},
-                  {title: 'Tool', value: 'tool'},
-                  {title: 'Other', value: 'other'},
-                ],
-              },
             }),
             defineField({
               name: 'title',
@@ -136,7 +128,7 @@ export const lessonType = defineType({
           preview: {
             select: {
               title: 'title',
-              subtitle: 'resourceType',
+              subtitle: 'type',
             },
           },
         }),
@@ -146,7 +138,7 @@ export const lessonType = defineType({
   preview: {
     select: {
       title: 'title',
-      media: 'poster',
+      media: 'thumbnail',
     },
   },
 })
