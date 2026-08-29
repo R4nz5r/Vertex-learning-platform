@@ -26,7 +26,7 @@ const lessonCardFragment = /* groq */ `
   title,
   "slug": slug.current,
   videoUrl,
-  poster {
+  thumbnail {
     ${imageFragment}
   },
   duration,
@@ -120,7 +120,7 @@ export const LESSON_BY_SLUG_QUERY = defineQuery(/* groq */ `
     title,
     "slug": slug.current,
     videoUrl,
-    poster {
+    thumbnail {
       ${imageFragment}
     },
     duration,
@@ -131,7 +131,7 @@ export const LESSON_BY_SLUG_QUERY = defineQuery(/* groq */ `
     proTip,
     resources[] {
       _key,
-      resourceType,
+      type,
       title,
       description,
       url

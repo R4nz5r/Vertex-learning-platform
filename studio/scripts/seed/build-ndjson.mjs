@@ -13,7 +13,29 @@ export function buildNdjson() {
   console.log('Building and validating seed.ndjson...')
 
   const docs = loadSeedDocuments()
-  const idMap = new Set(docs.map((d) => d._id))
+  const idMap = new Set()
+  let idValidationErrors = 0
+
+  for (let i = 0; i < docs.length; i++) {
+    const doc = docs[i]
+    if (!doc._id || typeof doc._id !== 'string' || doc._id.trim() === '') {
+      console.error(`❌ Document at index ${i} (type: "${doc._type || 'unknown'}", title: "${doc.title || 'untitled'}") is missing a valid _id.`)
+      idValidationErrors++
+      continue
+    }
+
+    if (idMap.has(doc._id)) {
+      console.error(`❌ Duplicate document _id detected: "${doc._id}" (type: "${doc._type}", title: "${doc.title || 'untitled'}")`)
+      idValidationErrors++
+    } else {
+      idMap.add(doc._id)
+    }
+  }
+
+  if (idValidationErrors > 0) {
+    console.error(`❌ Build failed with ${idValidationErrors} _id validation errors.`)
+    process.exit(1)
+  }
 
   let missingRefs = 0
 
