@@ -9,7 +9,7 @@ export default defineCliConfig({
     dataset,
   },
   typegen: {
-    path: '../sanity.types.ts',
+    path: '../sanity/lib/queries.ts',
     schema: './schema.json',
     generates: '../sanity.types.ts',
   },

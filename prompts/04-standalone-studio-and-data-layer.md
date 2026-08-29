@@ -52,18 +52,18 @@
    - Wire `next: { revalidate: tags.length ? false : revalidate, tags }` into `client.fetch`.
 4. **Domain Cache Tagging in Fetchers**:
    - `getCourses()` -> `tags: ['course', 'instructor', 'category']`
-   - `getCourseBySlug(slug)` -> `tags: ['course', `course:${slug}`, 'instructor', 'category', 'lesson']`
-   - `getLessonBySlug(slug)` -> `tags: ['lesson', `lesson:${slug}`, 'course']`
+   - `getCourseBySlug(slug)` -> ``tags: ['course', `course:${slug}`, 'instructor', 'category', 'lesson']``
+   - `getLessonBySlug(slug)` -> ``tags: ['lesson', `lesson:${slug}`, 'course']``
    - `getInstructors()` -> `tags: ['instructor']`
-   - `getInstructorBySlug(slug)` -> `tags: ['instructor', `instructor:${slug}`, 'course']`
+   - `getInstructorBySlug(slug)` -> ``tags: ['instructor', `instructor:${slug}`, 'course']``
    - `getCategories()` -> `tags: ['category']`
-   - `getCoursesByCategory(categorySlug)` -> `tags: ['course', `category:${categorySlug}`]`
+   - `getCoursesByCategory(categorySlug)` -> ``tags: ['course', `category:${categorySlug}`]``
 5. **Clean up Legacy Live Content API**:
    - Remove `sanity/lib/live.ts` since tagged `sanityFetch` replaces `defineLive`.
 
 ## Files to create or change
 
-```
+```text
 studio/package.json                  [NEW] Standalone Studio package configuration
 studio/sanity.config.ts              [NEW] Standalone Studio configuration
 studio/sanity.cli.ts                 [NEW] Standalone Studio CLI & TypeGen configuration

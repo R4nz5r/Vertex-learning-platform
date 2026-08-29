@@ -33,7 +33,7 @@ export async function sanityFetch<const QueryString extends string>({
 }) {
   return client.fetch(query, params, {
     next: {
-      revalidate: tags.length ? false : revalidate,
+      revalidate,
       tags,
     },
   })

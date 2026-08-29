@@ -100,6 +100,7 @@ export const courseType = defineType({
       title: 'Price',
       type: 'number',
       description: 'Display price (e.g. 49.99)',
+      validation: (rule) => rule.min(0),
     }),
     defineField({
       name: 'popular',
@@ -114,6 +115,7 @@ export const courseType = defineType({
       type: 'number',
       description: 'For display purposes',
       initialValue: 0,
+      validation: (rule) => rule.min(0),
     }),
     defineField({
       name: 'learningOutcomes',
