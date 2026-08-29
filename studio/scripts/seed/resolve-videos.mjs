@@ -22,9 +22,18 @@ export function resolveVideos() {
 
   let matched = 0
   let unmapped = 0
+  let skipped = 0
 
   for (const lesson of lessons) {
-    const slug = lesson.slug?.current || lesson.slug
+    const rawSlug = lesson.slug?.current || lesson.slug
+    const slug = typeof rawSlug === 'string' ? rawSlug.trim() : ''
+
+    if (!slug) {
+      console.warn(`⚠️ Skipping lesson "${lesson.title || lesson._id || 'untitled'}" — missing or invalid slug.`)
+      skipped++
+      continue
+    }
+
     if (videosMap[slug]) {
       matched++
     } else {
@@ -43,7 +52,7 @@ export function resolveVideos() {
 
   fs.writeFileSync(videosFilePath, JSON.stringify(videosMap, null, 2) + '\n', 'utf-8')
 
-  console.log(`✅ Video resolution complete: ${matched} matched, ${unmapped} newly registered.`)
+  console.log(`✅ Video resolution complete: ${matched} matched, ${unmapped} newly registered, ${skipped} skipped.`)
   console.log(`Total mapped videos in videos.json: ${Object.keys(videosMap).length}`)
 }
 
