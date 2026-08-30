@@ -252,3 +252,86 @@ export const COURSES_BY_CATEGORY_QUERY = defineQuery(/* groq */ `
     "lessonCount": count(modules[].lessons[])
   }
 `)
+
+// ─── Search ─────────────────────────────────────────────────────
+
+/**
+ * Fetch lessons by a list of IDs with full course and module context.
+ * Used by the search grounding pass to enrich model hits.
+ */
+export const LESSONS_BY_IDS_QUERY = defineQuery(/* groq */ `
+  *[_type == "lesson" && _id in $ids] {
+    _id,
+    _createdAt,
+    title,
+    "slug": slug.current,
+    duration,
+    thumbnail {
+      ${imageFragment}
+    },
+    keyPoints,
+    freePreview,
+    videoUrl,
+    "course": *[_type == "course" && references(^._id)][0] {
+      _id,
+      title,
+      "slug": slug.current,
+      coverImage {
+        ${imageFragment}
+      },
+      modules[] {
+        _key,
+        title,
+        summary,
+        lessons[]->{
+          _id,
+          title,
+          "slug": slug.current
+        }
+      }
+    }
+  }
+`)
+
+/**
+ * Direct GROQ search query over lessons using token matching.
+ */
+export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
+  *[_type == "lesson" && (
+    count($terms[@ in ^.title]) > 0 ||
+    count($terms[^.title match @]) > 0 ||
+    count($terms[pt::text(^.notes) match @]) > 0 ||
+    count($terms[^.keyPoints[] match @]) > 0
+  )] {
+    _id,
+    _createdAt,
+    title,
+    "slug": slug.current,
+    duration,
+    thumbnail {
+      ${imageFragment}
+    },
+    keyPoints,
+    freePreview,
+    videoUrl,
+    "course": *[_type == "course" && references(^._id)][0] {
+      _id,
+      title,
+      "slug": slug.current,
+      coverImage {
+        ${imageFragment}
+      },
+      modules[] {
+        _key,
+        title,
+        summary,
+        lessons[]->{
+          _id,
+          title,
+          "slug": slug.current
+        }
+      }
+    }
+  }
+`)
+
