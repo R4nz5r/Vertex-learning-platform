@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { Navbar } from "@/components/nav/navbar";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { CourseHero } from "@/components/course/course-hero";
@@ -9,6 +10,7 @@ import { ModuleAccordion } from "@/components/course/module-accordion";
 import { BottomProgressBar } from "@/components/course/bottom-progress-bar";
 import { getCourseBySlug, getCourses } from "@/sanity/lib/fetchers";
 import { formatDurationHoursMinutes } from "@/lib/format";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 interface PageProps {
   params: Promise<{
@@ -135,6 +137,24 @@ export default async function CourseDetailPage({ params }: PageProps) {
   }
 
   const formattedTotalDuration = formatDurationHoursMinutes(totalSeconds);
+
+  // Server-side event: track course views for authenticated users
+  const { userId } = await auth();
+  if (userId) {
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: "course_viewed",
+      properties: {
+        course_title: course.title,
+        course_slug: slug,
+        course_level: course.level ?? undefined,
+        module_count: moduleCount,
+        total_duration_seconds: totalSeconds,
+      },
+    });
+    await posthog.flush();
+  }
 
   return (
     <div

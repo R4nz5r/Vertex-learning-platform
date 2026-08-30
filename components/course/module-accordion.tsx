@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
 import { formatDurationHoursMinutes, formatDurationMinutesSeconds } from "@/lib/format";
+import posthog from "posthog-js";
 
 export interface AccordionLesson {
   _id: string;
@@ -35,13 +36,21 @@ export function ModuleAccordion({
   });
   const [showAll, setShowAll] = useState(false);
 
-  const toggleModule = (key: string) => {
+  const toggleModule = (key: string, moduleTitle: string, lessonCount: number) => {
     setExpandedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
+        posthog.capture("module_collapsed", {
+          module_title: moduleTitle,
+          lesson_count: lessonCount,
+        });
       } else {
         next.add(key);
+        posthog.capture("module_expanded", {
+          module_title: moduleTitle,
+          lesson_count: lessonCount,
+        });
       }
       return next;
     });
@@ -74,7 +83,7 @@ export function ModuleAccordion({
             {/* ── Module Header Button ── */}
             <button
               type="button"
-              onClick={() => toggleModule(modKey)}
+              onClick={() => toggleModule(modKey, moduleItem.title, moduleItem.lessons?.length ?? 0)}
               aria-expanded={isExpanded}
               className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-neutral-50/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset cursor-pointer"
             >
@@ -129,6 +138,15 @@ export function ModuleAccordion({
                       <Link
                         href={`/lessons/${lesson.slug}`}
                         className="flex items-center gap-3 min-w-0 flex-1 group-hover:text-primary-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm"
+                        onClick={() =>
+                          posthog.capture("lesson_clicked", {
+                            lesson_title: lesson.title,
+                            lesson_slug: lesson.slug,
+                            module_title: moduleItem.title,
+                            lesson_number: lessonNumber,
+                            is_free_preview: lesson.freePreview ?? false,
+                          })
+                        }
                       >
                         <PlayCircle className="w-4 h-4 text-neutral-400 group-hover:text-primary-500 shrink-0 transition-colors" />
                         <span className="text-[12.5px] font-medium text-neutral-400 shrink-0">
@@ -163,7 +181,13 @@ export function ModuleAccordion({
         <div className="w-full flex justify-center mt-2">
           <button
             type="button"
-            onClick={() => setShowAll(!showAll)}
+            onClick={() => {
+              posthog.capture("show_all_modules_toggled", {
+                action: showAll ? "show_fewer" : "show_all",
+                total_modules: modules.length,
+              });
+              setShowAll(!showAll);
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#EBE4DC] bg-white text-[13.5px] font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer"
           >
             <span>{showAll ? "Show fewer modules" : `Show all ${modules.length} modules`}</span>

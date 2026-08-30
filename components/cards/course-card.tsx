@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { BarChart2, Clock, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import posthog from "posthog-js";
 
 export interface CourseCardProps {
   icon?: React.ReactNode;
@@ -81,7 +84,18 @@ export function CourseCard({
 
   if (href) {
     return (
-      <a href={href} className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-[var(--radius-lg)]">
+      <a
+        href={href}
+        className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-[var(--radius-lg)]"
+        onClick={() =>
+          posthog.capture("course_card_clicked", {
+            course_title: title,
+            course_level: level,
+            course_duration: duration,
+            course_modules: modules,
+          })
+        }
+      >
         {content}
       </a>
     );

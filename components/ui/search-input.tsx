@@ -1,5 +1,8 @@
+"use client";
+
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import posthog from "posthog-js";
 
 interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   className?: string;
@@ -40,6 +43,16 @@ export function SearchInput({
             : "h-11 pl-10 pr-16 text-body text-neutral-700 placeholder:text-neutral-400 rounded-[var(--radius-md)]",
           inputClassName,
         )}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const query = (e.target as HTMLInputElement).value.trim();
+            if (query) {
+              posthog.capture("search_submitted", {
+                query_length: query.length,
+              });
+            }
+          }
+        }}
         {...props}
       />
       {showShortcut && (

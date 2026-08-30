@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDurationHoursMinutes, formatStudentCount } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
+import posthog from "posthog-js";
 
 interface CourseCoverImage {
   asset?: {
@@ -180,6 +183,13 @@ export function CourseHero({
           {/* Primary CTA */}
           <Link
             href={continueHref}
+            onClick={() =>
+              posthog.capture("continue_learning_clicked", {
+                course_title: title,
+                course_level: level ?? undefined,
+                first_lesson_slug: firstLessonSlug ?? undefined,
+              })
+            }
             className="inline-flex items-center justify-center gap-2 h-[44px] px-6 rounded-[8px] font-medium text-[14px] text-white bg-gradient-to-b from-[#E76D42] to-[#D9572B] border border-[#D45428] shadow-[0_4px_14px_rgba(225,98,55,0.38)] hover:from-[#DF6236] hover:to-[#CE4E22] hover:shadow-[0_6px_18px_rgba(225,98,55,0.48)] active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer"
           >
             <span>Continue Learning</span>
@@ -189,6 +199,12 @@ export function CourseHero({
           {/* Bookmark Button */}
           <button
             type="button"
+            onClick={() =>
+              posthog.capture("course_bookmarked", {
+                course_title: title,
+                course_level: level ?? undefined,
+              })
+            }
             className="inline-flex items-center justify-center gap-2 h-[44px] px-5 rounded-[8px] font-medium text-[14px] text-neutral-700 bg-white border border-[#EBE4DC] hover:bg-neutral-50 hover:border-neutral-300 shadow-sm active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer"
           >
             <Bookmark className="w-4 h-4 text-neutral-500" strokeWidth={1.75} aria-hidden="true" />

@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body suppressHydrationWarning>
         <ClerkProvider>
+          <PostHogIdentify />
           {children}
         </ClerkProvider>
       </body>
