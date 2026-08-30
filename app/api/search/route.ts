@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateObject, generateText, type CoreTool } from "ai";
+import { generateObject, generateText } from "ai";
 
-import { google } from "@ai-sdk/google";
+
+import { createGoogleGenerativeAI as createGoogle } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
 import { getPostHogClient } from "@/lib/posthog-server";
@@ -11,6 +12,7 @@ import { SearchRequestSchema, ModelOutputSchema, ModelHit } from "@/lib/search/t
 import { fetchInitialContext, createSearchMcpClient } from "@/lib/search/mcp";
 import { buildSystemPrompt } from "@/lib/search/system-prompt";
 import { groundSearchHits } from "@/lib/search/ground";
+import { checkRateLimit, getClientIp } from "@/lib/search/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ function resolveLanguageModel() {
   const googleKey =
     process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (googleKey) {
+    const google = createGoogle({ apiKey: googleKey });
     return google("gemini-2.0-flash");
   }
 
@@ -90,6 +93,21 @@ async function executeGroqFallbackSearch(query: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // 1. Rate limiting (before model/MCP execution and independent of auth)
+  const clientIp = getClientIp(req);
+  const rateLimit = checkRateLimit(`search:${clientIp}`, 30, 60 * 1000);
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: "Too many search requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rateLimit.reset - Date.now()) / 1000)),
+        },
+      }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -107,6 +125,7 @@ export async function POST(req: NextRequest) {
 
   const { query, sort } = parseResult.data;
   let model: ReturnType<typeof resolveLanguageModel> = null;
+
 
   try {
     model = resolveLanguageModel();
