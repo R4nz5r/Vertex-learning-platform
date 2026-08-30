@@ -1,18 +1,17 @@
 import React from "react";
+import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
 import { Navbar } from "@/components/nav/navbar";
+import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { CourseCard } from "@/components/cards/course-card";
-import { SearchInput } from "@/components/ui/search-input";
 import { getCourses } from "@/sanity/lib/fetchers";
 import { formatDurationHoursMinutes } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
 
-export const metadata = {
-  title: "Vertex — Search your learning in plain English",
+export const metadata: Metadata = {
+  title: "All Courses | Vertex",
   description:
-    "Vertex understands what you want to learn and finds the exact lessons across all your courses.",
+    "Explore our complete library of production-grade engineering and AI courses.",
 };
 
 /** Next.js logo icon */
@@ -39,7 +38,6 @@ function DockerIcon() {
   return (
     <div className="w-12 h-10 flex items-center justify-start">
       <svg width="46" height="32" viewBox="0 0 46 32" fill="none">
-        {/* Containers */}
         <rect x="14" y="2" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
         <rect x="18.5" y="2" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
         <rect x="9.5" y="6" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
@@ -51,22 +49,18 @@ function DockerIcon() {
         <rect x="14" y="10" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
         <rect x="18.5" y="10" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
         <rect x="23" y="10" width="3.8" height="3.2" rx="0.5" fill="#2496ED" stroke="#0F172A" strokeWidth="0.8" />
-        
-        {/* Whale body */}
         <path
           d="M2 15C2 14.5 2.5 14 3.5 14C5 14 6 15 7.5 15C9 15 28 15 31 16.5C34 18 36.5 21 36.5 24C36.5 26.5 34 29 27 29C17 29 7 28 4.5 23.5C3.2 21.2 2.5 18 2 15Z"
           fill="#2496ED"
           stroke="#0F172A"
           strokeWidth="1"
         />
-        {/* Whale tail */}
         <path
           d="M31 16.5C35 15 39 12 42 8C42 12 40 16 43 18C40 19 36 19 33.5 18"
           fill="#2496ED"
           stroke="#0F172A"
           strokeWidth="1"
         />
-        {/* Whale Eye */}
         <circle cx="9" cy="20" r="1" fill="#fff" />
       </svg>
     </div>
@@ -82,7 +76,7 @@ function TypeScriptIcon() {
   );
 }
 
-interface CourseItem {
+interface CourseCatalogItem {
   _id: string;
   title: string;
   slug: string;
@@ -103,7 +97,7 @@ interface CourseItem {
   totalDuration?: number | null;
 }
 
-function resolveCourseIcon(course: CourseItem) {
+function resolveCourseIcon(course: CourseCatalogItem) {
   const title = (course.title || "").toLowerCase();
   const slug = (course.slug || "").toLowerCase();
 
@@ -132,7 +126,7 @@ function resolveCourseIcon(course: CourseItem) {
   return null;
 }
 
-/** Decorative bottom stepped gradient bars graphic matching vertex-home.png */
+/** Decorative bottom stepped gradient bars graphic matching Vertex branding */
 function BottomSteppedGraphic() {
   const leftBars = [
     { height: "42%", left: "0%", width: "7.6%" },
@@ -156,8 +150,7 @@ function BottomSteppedGraphic() {
   const allBars = [...leftBars, ...rightBars];
 
   return (
-    <div className="w-full relative h-48 sm:h-56 lg:h-64 mt-4 overflow-hidden pointer-events-none select-none">
-      {/* Soft feathered top bloom layer */}
+    <div className="w-full relative h-40 sm:h-48 lg:h-56 mt-12 overflow-hidden pointer-events-none select-none">
       <div className="absolute inset-0">
         {allBars.map((bar, idx) => (
           <div
@@ -174,7 +167,6 @@ function BottomSteppedGraphic() {
         ))}
       </div>
 
-      {/* Main crisp pillars with luminous peach-coral gradient and seamless continuous shape */}
       <div className="absolute inset-0">
         {allBars.map((bar, idx) => (
           <div
@@ -193,11 +185,8 @@ function BottomSteppedGraphic() {
   );
 }
 
-export default async function HomePage() {
-  const allCourses: CourseItem[] = (await getCourses()) || [];
-  
-  // Default to the first 3 courses from Sanity
-  const displayCourses = allCourses.slice(0, 3);
+export default async function AllCoursesPage() {
+  const courses: CourseCatalogItem[] = (await getCourses()) || [];
 
   return (
     <div
@@ -209,7 +198,6 @@ export default async function HomePage() {
     >
       {/* ── Center Framed Website Container (1440px) ── */}
       <div className="max-w-[1440px] w-full mx-auto min-h-screen bg-[#FAF7F2] border-x border-[#EBE4DC] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.02)]">
-        
         {/* ── Top Navigation Bar ── */}
         <Navbar
           links={[
@@ -220,112 +208,60 @@ export default async function HomePage() {
           className="border-b border-[#EBE4DC] px-8 sm:px-12 bg-[#FAF7F2]"
         />
 
-        {/* ── Hero Section (Inside Container) ── */}
-        <section className="w-full px-8 sm:px-16 lg:px-24 pt-14 sm:pt-20 pb-14 flex flex-col items-center">
-          
-          {/* ── Intelligent Learning Badge ── */}
-          <div className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-[8px] bg-[#FFF6F0] border border-[#FCDCC9] shadow-[0_1px_2px_rgba(225,98,55,0.05)] mb-6">
-            <span className="text-[10.5px] font-semibold tracking-[0.16em] text-[#C24F1A] uppercase">
-              INTELLIGENT LEARNING
-            </span>
-          </div>
-
-          {/* ── Hero Heading ── */}
-          <h1 className="font-display text-[44px] sm:text-[56px] lg:text-[64px] font-bold text-neutral-900 text-center tracking-tight leading-[1.12] mb-5 max-w-[760px]">
-            Search your learning
-            <br />
-            in plain English.
-          </h1>
-
-          {/* ── Subtitle ── */}
-          <p className="text-body-lg text-neutral-500 text-center max-w-[560px] leading-relaxed mb-9">
-            Vertex understands what you want to learn and
-            <br className="hidden sm:inline" /> finds the exact lessons across all your courses.
-          </p>
-
-          {/* ── Explore Courses CTA Button ── */}
-          <div className="mb-9">
-            <Link
-              href="/courses"
-              className="inline-flex items-center justify-center gap-2 h-[44px] px-6 rounded-[8px] font-medium text-[14px] text-white bg-gradient-to-b from-[#E76D42] to-[#D9572B] border border-[#D45428] shadow-[0_4px_14px_rgba(225,98,55,0.38)] hover:from-[#DF6236] hover:to-[#CE4E22] hover:shadow-[0_6px_18px_rgba(225,98,55,0.48)] active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer"
-            >
-              <span>Explore Courses</span>
-              <ArrowRight className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
-            </Link>
-          </div>
-
-          {/* ── Search Bar ── */}
-          <div className="w-full max-w-[680px]">
-            <SearchInput
-              placeholder="Ask anything about your learning..."
-              sizeVariant="lg"
-              showShortcut={true}
+        {/* ── Main Catalog Content ── */}
+        <main className="flex-1 w-full max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-12 pt-8 pb-12 flex flex-col">
+          {/* ── Breadcrumbs ── */}
+          <div className="mb-8">
+            <Breadcrumbs
+              items={[
+                { label: "Home", href: "/" },
+                { label: "All Courses" },
+              ]}
             />
           </div>
 
-        </section>
-
-        {/* ── Full-Width Section Divider Line ── */}
-        <hr className="w-full border-0 border-t border-[#EBE4DC] my-0" />
-
-        {/* ── Main Content Container ── */}
-        <main className="flex-1 w-full max-w-[1240px] mx-auto px-8 sm:px-12 pt-12 pb-8 flex flex-col items-center">
-          
-          {/* ── All Courses Section ── */}
-          <section className="w-full mb-16" aria-labelledby="all-courses-heading">
-            {/* Section Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 id="all-courses-heading" className="font-display text-[24px] sm:text-[28px] font-bold text-neutral-900 tracking-tight">
-                All Courses
-              </h2>
-              <Link
-                href="/courses"
-                className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#F97316] hover:text-[#EA580C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm"
-              >
-                <span>View all courses</span>
-                <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
-              </Link>
+          {/* ── Page Header ── */}
+          <div className="mb-10 sm:mb-12">
+            <div className="inline-flex items-center justify-center px-3 py-1 rounded-[6px] bg-[#FFF6F0] border border-[#FCDCC9] shadow-[0_1px_2px_rgba(225,98,55,0.05)] mb-3">
+              <span className="text-[10.5px] font-semibold tracking-[0.14em] text-[#C24F1A] uppercase">
+                COURSE CATALOG
+              </span>
             </div>
-
-            {/* Courses 3-Card Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-              {displayCourses.map((course) => {
-                const formattedDuration = formatDurationHoursMinutes(course.totalDuration || 0);
-                const customIcon = resolveCourseIcon(course);
-                const formattedLevel = course.level
-                  ? course.level.charAt(0).toUpperCase() + course.level.slice(1)
-                  : "Intermediate";
-
-                return (
-                  <CourseCard
-                    key={course._id || course.slug}
-                    icon={customIcon}
-                    logoChar={!customIcon ? (course.title || "C").charAt(0) : undefined}
-                    title={course.title}
-                    description={course.summary || ""}
-                    level={formattedLevel}
-                    duration={formattedDuration}
-                    modules={course.moduleCount || 0}
-                    href={`/courses/${course.slug}`}
-                  />
-                );
-              })}
-            </div>
-          </section>
-
-          {/* ── Mid-page Weekly Star Banner ── */}
-          <div className="w-full flex items-center justify-center my-6">
-            <div className="flex-1 h-px bg-neutral-200/70" />
-            <div className="flex items-center gap-2.5 px-5 text-[13px] text-neutral-700 font-normal">
-              <Star className="w-4 h-4 text-[#F97316]" strokeWidth={1.75} aria-hidden="true" />
-              <span>New courses and lessons added every week.</span>
-            </div>
-            <div className="flex-1 h-px bg-neutral-200/70" />
+            <h1 className="font-display text-[32px] sm:text-[42px] font-bold text-neutral-900 tracking-tight leading-[1.15] mb-3">
+              All Courses
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-neutral-500 max-w-[620px] leading-relaxed">
+              Explore {courses.length} comprehensive courses taught by industry practitioners. Find the exact lesson you need or master a complete path.
+            </p>
           </div>
 
+          {/* ── Courses Grid ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {courses.map((course) => {
+              const formattedDuration = formatDurationHoursMinutes(course.totalDuration || 0);
+              const customIcon = resolveCourseIcon(course);
+              const formattedLevel = course.level
+                ? course.level.charAt(0).toUpperCase() + course.level.slice(1)
+                : "Intermediate";
+
+              return (
+                <CourseCard
+                  key={course._id || course.slug}
+                  icon={customIcon}
+                  logoChar={!customIcon ? (course.title || "C").charAt(0) : undefined}
+                  title={course.title}
+                  description={course.summary || ""}
+                  level={formattedLevel}
+                  duration={formattedDuration}
+                  modules={course.moduleCount || 0}
+                  href={`/courses/${course.slug}`}
+                />
+              );
+            })}
+          </div>
         </main>
 
-        {/* ── Bottom Decorative Stepped Bars Graphic ── */}
+        {/* ── Bottom Stepped Gradient Graphic ── */}
         <BottomSteppedGraphic />
       </div>
     </div>
