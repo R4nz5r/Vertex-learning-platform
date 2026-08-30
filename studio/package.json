@@ -11,7 +11,8 @@
     "deploy-graphql": "sanity graphql deploy",
     "typegen": "sanity schema extract --enforce-required-fields && sanity typegen generate",
     "seed:build": "node scripts/seed/build-ndjson.mjs",
-    "seed:import": "sanity dataset import scripts/seed/seed.ndjson production --replace"
+    "seed:import": "sanity dataset import scripts/seed/seed.ndjson production --replace",
+    "context:import": "sanity dataset import scripts/context/vertex-search.ndjson production --replace"
   },
   "keywords": [
     "sanity"
