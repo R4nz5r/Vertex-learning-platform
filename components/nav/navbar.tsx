@@ -21,6 +21,10 @@ const defaultLinks: NavLink[] = [
   { label: "My Learning", href: "#" },
 ];
 
+/**
+ * Main navigation bar component with logo, links, and authentication controls.
+ * Shows sign-in/sign-up buttons when signed out, and user profile/notifications when signed in.
+ */
 export function Navbar({
   links = defaultLinks,
   showActions = true,

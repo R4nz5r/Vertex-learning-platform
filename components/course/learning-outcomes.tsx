@@ -25,6 +25,10 @@ interface LearningOutcomesProps {
   outcomes?: LearningOutcomeItem[];
 }
 
+/**
+ * Maps a string icon name to its corresponding Lucide icon component.
+ * Falls back to Sparkles icon if the name is unrecognized.
+ */
 function resolveOutcomeIcon(iconName?: string | null) {
   const normalized = (iconName || "").toLowerCase().trim();
   switch (normalized) {
@@ -63,6 +67,10 @@ function resolveOutcomeIcon(iconName?: string | null) {
   }
 }
 
+/**
+ * Displays a grid of learning outcomes for the course.
+ * Each outcome includes an icon, title, and optional description.
+ */
 export function LearningOutcomes({ outcomes }: LearningOutcomesProps) {
   if (!outcomes || outcomes.length === 0) return null;
 

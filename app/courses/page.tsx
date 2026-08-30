@@ -14,7 +14,9 @@ export const metadata: Metadata = {
     "Explore our complete library of production-grade engineering and AI courses.",
 };
 
-/** Next.js logo icon */
+/**
+ * Renders the Next.js logo icon with black background.
+ */
 function NextjsIcon() {
   return (
     <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center shadow-sm">
@@ -33,7 +35,9 @@ function NextjsIcon() {
   );
 }
 
-/** Docker logo icon */
+/**
+ * Renders the Docker whale logo icon with container blocks.
+ */
 function DockerIcon() {
   return (
     <div className="w-12 h-10 flex items-center justify-start">
@@ -67,7 +71,9 @@ function DockerIcon() {
   );
 }
 
-/** TypeScript logo icon */
+/**
+ * Renders the TypeScript logo icon with blue background and "TS" text.
+ */
 function TypeScriptIcon() {
   return (
     <div className="w-10 h-10 rounded-lg bg-[#3178C6] flex items-center justify-center shadow-sm">
@@ -97,6 +103,10 @@ interface CourseCatalogItem {
   totalDuration?: number | null;
 }
 
+/**
+ * Resolves and returns the appropriate icon component for a course based on its title or slug.
+ * Returns course cover image if no specific icon matches, or null if no image is available.
+ */
 function resolveCourseIcon(course: CourseCatalogItem) {
   const title = (course.title || "").toLowerCase();
   const slug = (course.slug || "").toLowerCase();
@@ -126,7 +136,10 @@ function resolveCourseIcon(course: CourseCatalogItem) {
   return null;
 }
 
-/** Decorative bottom stepped gradient bars graphic matching Vertex branding */
+/**
+ * Decorative bottom stepped gradient bars graphic matching Vertex branding.
+ * Creates an animated visualization with coral-orange gradient bars at varying heights.
+ */
 function BottomSteppedGraphic() {
   const leftBars = [
     { height: "42%", left: "0%", width: "7.6%" },
@@ -185,6 +198,10 @@ function BottomSteppedGraphic() {
   );
 }
 
+/**
+ * Server component that renders the all courses catalog page.
+ * Fetches and displays all available courses in a responsive grid layout.
+ */
 export default async function AllCoursesPage() {
   const courses: CourseCatalogItem[] = (await getCourses()) || [];
 

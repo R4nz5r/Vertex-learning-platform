@@ -7,6 +7,10 @@ interface BottomProgressBarProps {
   firstLessonSlug?: string | null;
 }
 
+/**
+ * Displays a progress bar showing course completion percentage with a "Continue Learning" button.
+ * Links to the first lesson or next lesson to continue the learning journey.
+ */
 export function BottomProgressBar({
   progressPercentage = 0,
   firstLessonSlug,

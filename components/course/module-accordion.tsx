@@ -25,6 +25,10 @@ interface ModuleAccordionProps {
   initialVisibleCount?: number;
 }
 
+/**
+ * Displays an accordion of course modules with expandable lesson lists.
+ * Supports limiting visible modules with a "Show all" toggle.
+ */
 export function ModuleAccordion({
   modules,
   initialVisibleCount = 6,

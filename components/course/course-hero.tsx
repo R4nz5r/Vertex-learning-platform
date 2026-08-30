@@ -39,7 +39,10 @@ interface CourseHeroProps {
   firstLessonSlug?: string | null;
 }
 
-/** Fallback stylish branded icon when Sanity image isn't loaded */
+/**
+ * Fallback stylish branded icon when Sanity image isn't loaded.
+ * Renders a Next.js logo with gradient styling as a placeholder.
+ */
 function NextjsFallbackCover() {
   return (
     <div className="w-full h-full bg-[#0a0a0a] flex items-center justify-center p-8 relative overflow-hidden">
@@ -85,6 +88,10 @@ function NextjsFallbackCover() {
   );
 }
 
+/**
+ * Displays the course header section with cover image, title, metadata, and action buttons.
+ * Shows course popularity badge, level, duration, module count, and student count.
+ */
 export function CourseHero({
   title,
   summary,

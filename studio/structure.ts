@@ -1,6 +1,10 @@
 import {BookIcon, PlayIcon, TagIcon, UserIcon} from '@sanity/icons'
 import type {StructureResolver} from 'sanity/structure'
 
+/**
+ * Defines the custom structure for Sanity Studio sidebar navigation.
+ * Organizes content types into a logical hierarchy with icons.
+ */
 export const structure: StructureResolver = (S) =>
   S.list()
     .title('Vertex')

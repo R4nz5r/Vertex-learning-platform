@@ -6,6 +6,10 @@ interface LogoProps {
   showWordmark?: boolean;
 }
 
+/**
+ * Renders the Vertex logo with an orange triangle mark and optional wordmark.
+ * Size can be customized and wordmark display is configurable.
+ */
 export function Logo({ size = 24, className, showWordmark = true }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>

@@ -16,6 +16,10 @@ export interface CourseCardProps {
   className?: string;
 }
 
+/**
+ * Displays a course card with icon/logo, title, description, and metadata (level, duration, modules).
+ * Optionally wraps content in a link if href is provided.
+ */
 export function CourseCard({
   icon,
   logoChar,

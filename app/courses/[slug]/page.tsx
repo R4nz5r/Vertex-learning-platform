@@ -16,7 +16,10 @@ interface PageProps {
   }>;
 }
 
-/** Decorative bottom stepped gradient bars graphic matching Vertex branding */
+/**
+ * Decorative bottom stepped gradient bars graphic matching Vertex branding.
+ * Creates an animated visualization with coral-orange gradient bars at varying heights.
+ */
 function BottomSteppedGraphic() {
   const leftBars = [
     { height: "42%", left: "0%", width: "7.6%" },
@@ -77,6 +80,10 @@ function BottomSteppedGraphic() {
   );
 }
 
+/**
+ * Generates static paths for all course detail pages at build time.
+ * Returns an array of course slugs to pre-render.
+ */
 export async function generateStaticParams() {
   try {
     const courses = await getCourses();
@@ -88,6 +95,10 @@ export async function generateStaticParams() {
   }
 }
 
+/**
+ * Generates dynamic metadata (title and description) for the course detail page.
+ * Uses the course title and summary to populate SEO metadata.
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
@@ -106,6 +117,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * Server component that renders the course detail page with hero, learning outcomes, and module accordion.
+ * Shows 404 if the course is not found.
+ */
 export default async function CourseDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const course = await getCourseBySlug(slug);

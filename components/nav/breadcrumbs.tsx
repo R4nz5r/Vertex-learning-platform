@@ -11,6 +11,10 @@ interface BreadcrumbsProps {
   className?: string;
 }
 
+/**
+ * Renders a breadcrumb navigation trail showing the current page hierarchy.
+ * The last item is displayed as plain text, while others are clickable links.
+ */
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className={className}>

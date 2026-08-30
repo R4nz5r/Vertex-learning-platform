@@ -13,6 +13,10 @@ export function formatDurationHoursMinutes(totalSeconds: number): string {
   return `${minutes}m`;
 }
 
+/**
+ * Format duration in seconds into human-readable strings with minutes and seconds.
+ * e.g., 3660 -> "1h 1m", 350 -> "5m 50s", 45 -> "45s"
+ */
 export function formatDurationMinutesSeconds(totalSeconds: number): string {
   if (!totalSeconds || totalSeconds <= 0) return "0m";
   const hours = Math.floor(totalSeconds / 3600);
