@@ -112,6 +112,16 @@ export const COURSE_BY_SLUG_QUERY = defineQuery(/* groq */ `
 // ─── Lessons ────────────────────────────────────────────────────
 
 /**
+ * All lessons for generateStaticParams and indexing.
+ */
+export const ALL_LESSONS_QUERY = defineQuery(/* groq */ `
+  *[_type == "lesson"] {
+    _id,
+    "slug": slug.current
+  }
+`)
+
+/**
  * Single lesson by slug — full detail including notes, key points,
  * resources, and the parent course context derived via reverse reference.
  */
@@ -141,12 +151,15 @@ export const LESSON_BY_SLUG_QUERY = defineQuery(/* groq */ `
       _id,
       title,
       "slug": slug.current,
+      level,
+      studentCount,
       coverImage {
         ${imageFragment}
       },
       modules[] {
         _key,
         title,
+        summary,
         lessons[]->{
           _id,
           title,
