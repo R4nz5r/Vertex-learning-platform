@@ -30,8 +30,7 @@ export function Navbar({
     <nav
       aria-label="Main navigation"
       className={cn(
-        "flex items-center justify-between h-14 px-6 bg-white border-b border-neutral-200",
-        "shadow-[var(--shadow-sm)]",
+        "flex items-center justify-between h-14 px-6 border-b border-[#EBE4DC]",
         className,
       )}
     >

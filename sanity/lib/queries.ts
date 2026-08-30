@@ -62,7 +62,8 @@ export const COURSES_QUERY = defineQuery(/* groq */ `
       "slug": slug.current
     },
     "moduleCount": count(modules),
-    "lessonCount": count(modules[].lessons[])
+    "lessonCount": count(modules[].lessons[]),
+    "totalDuration": math::sum(modules[].lessons[]->duration)
   }
 `)
 
