@@ -1,5 +1,6 @@
 import {sanityFetch} from './client'
 import {
+  ALL_LESSONS_QUERY,
   CATEGORIES_QUERY,
   COURSE_BY_SLUG_QUERY,
   COURSES_BY_CATEGORY_QUERY,
@@ -35,6 +36,16 @@ export async function getCourseBySlug(slug: string) {
 }
 
 // ─── Lessons ────────────────────────────────────────────────────
+
+/**
+ * Fetch all lesson slugs for static param generation.
+ */
+export async function getAllLessons() {
+  return sanityFetch({
+    query: ALL_LESSONS_QUERY,
+    tags: ['lesson'],
+  })
+}
 
 /**
  * Fetch a single lesson by slug with parent course context.

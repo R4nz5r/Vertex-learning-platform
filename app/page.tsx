@@ -104,18 +104,6 @@ interface CourseItem {
 }
 
 function resolveCourseIcon(course: CourseItem) {
-  const title = (course.title || "").toLowerCase();
-  const slug = (course.slug || "").toLowerCase();
-
-  if (title.includes("next.js") || slug.includes("nextjs")) {
-    return <NextjsIcon />;
-  }
-  if (title.includes("docker") || slug.includes("docker") || title.includes("devops")) {
-    return <DockerIcon />;
-  }
-  if (title.includes("typescript") || slug.includes("typescript")) {
-    return <TypeScriptIcon />;
-  }
   if (course.coverImage?.asset?.url) {
     return (
       <div className="w-10 h-10 rounded-lg overflow-hidden relative shadow-sm border border-neutral-200/60 shrink-0">
@@ -128,6 +116,19 @@ function resolveCourseIcon(course: CourseItem) {
         />
       </div>
     );
+  }
+
+  const title = (course.title || "").toLowerCase();
+  const slug = (course.slug || "").toLowerCase();
+
+  if (title.includes("next.js") || slug.includes("nextjs")) {
+    return <NextjsIcon />;
+  }
+  if (title.includes("docker") || slug.includes("docker") || title.includes("devops")) {
+    return <DockerIcon />;
+  }
+  if (title.includes("typescript") || slug.includes("typescript")) {
+    return <TypeScriptIcon />;
   }
   return null;
 }
