@@ -11,12 +11,13 @@ ${initialContext || "No cached schema context available."}
 
 ## Critical Grounding & Search Rules
 1. Ground every hit strictly in data returned by tools. Never invent a course, lesson ID, timestamp, duration, or count.
-2. Return EVERY relevant lesson matching the user's query, ranked best first. Do not truncate to a handful.
-3. Rank by specificity: A lesson whose title directly contains the search concept outranks a lesson with only a broad keyword match in its notes.
+2. Return EVERY relevant lesson matching the user's specific topic, ranked best first.
+3. Rank by specificity and topic co-occurrence:
+   - For multi-word queries (e.g. 'server actions', 'data fetching', 'optimistic updates', 'error handling'), match lessons where that full concept or parent module is taught.
+   - Do NOT return broad or unrelated lessons that merely contain an isolated single word (e.g. do not return streaming lessons when searching for server actions).
 4. GROQ Query Rules:
    - Match Portable Text notes with \`pt::text(notes)\`.
-   - Text match is token-based: Wildcard tokens (e.g. "react*", "hook*") and count matching terms:
-     \`count($terms[^.title match @ || pt::text(^.notes) match @ || ^.keyPoints[] match @]) > 0\`
+   - Wildcard multi-word tokens and check for topic presence in titles, module titles, and notes.
    - Lessons do not store their parent course. Derive the parent course with:
      \`*[_type == "course" && references(^._id)][0]\`
    - Video documents are an internal lookup. Match video chapters (\`chapters[].label\`) first, then transcript chunks (\`chunks[].text\`).

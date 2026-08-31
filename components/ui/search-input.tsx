@@ -4,11 +4,14 @@ import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import posthog from "posthog-js";
 
+import { useRouter } from "next/navigation";
+
 interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   className?: string;
   inputClassName?: string;
   sizeVariant?: "md" | "lg";
   showShortcut?: boolean;
+  onSearch?: (query: string) => void;
 }
 
 export function SearchInput({
@@ -17,8 +20,11 @@ export function SearchInput({
   sizeVariant = "md",
   showShortcut = true,
   placeholder = "Search anything...",
+  onSearch,
+  onKeyDown,
   ...props
 }: SearchInputProps) {
+  const router = useRouter();
   const isLg = sizeVariant === "lg";
 
   return (
@@ -48,9 +54,18 @@ export function SearchInput({
             const query = (e.target as HTMLInputElement).value.trim();
             if (query) {
               posthog.capture("search_submitted", {
+                query: query,
                 query_length: query.length,
               });
+              if (onSearch) {
+                onSearch(query);
+              } else {
+                router.push(`/search?q=${encodeURIComponent(query)}`);
+              }
             }
+          }
+          if (onKeyDown) {
+            onKeyDown(e);
           }
         }}
         {...props}
@@ -58,7 +73,7 @@ export function SearchInput({
       {showShortcut && (
         <kbd
           className={cn(
-            "absolute inline-flex items-center gap-0.5 text-neutral-400 border border-neutral-200 font-sans select-none",
+            "absolute inline-flex items-center gap-0.5 text-neutral-400 border border-neutral-200 font-sans select-none pointer-events-none",
             isLg
               ? "right-3.5 px-2 py-1 text-[11px] font-medium rounded-[6px] bg-neutral-50/60"
               : "right-3 px-1.5 py-0.5 text-[10px] rounded",

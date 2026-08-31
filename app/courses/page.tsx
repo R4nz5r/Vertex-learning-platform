@@ -7,6 +7,8 @@ import { CourseCard } from "@/components/cards/course-card";
 import { getCourses } from "@/sanity/lib/fetchers";
 import { formatDurationHoursMinutes } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
+import { auth } from "@clerk/nextjs/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const metadata: Metadata = {
   title: "All Courses | Vertex",
@@ -188,6 +190,20 @@ function BottomSteppedGraphic() {
 
 export default async function AllCoursesPage() {
   const courses: CourseCatalogItem[] = (await getCourses()) || [];
+
+  // Server-side analytics event capture for catalog view
+  const { userId } = await auth();
+  if (userId) {
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: "catalog_viewed",
+      properties: {
+        total_courses: courses.length,
+      },
+    });
+    await posthog.flush();
+  }
 
   return (
     <div

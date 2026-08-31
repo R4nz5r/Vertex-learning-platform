@@ -272,6 +272,8 @@ export const LESSONS_BY_IDS_QUERY = defineQuery(/* groq */ `
     keyPoints,
     freePreview,
     videoUrl,
+    "introNote": notes[0].children[0].text,
+    "notesText": pt::text(notes),
     "course": *[_type == "course" && references(^._id)][0] {
       _id,
       title,
@@ -314,6 +316,7 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
     keyPoints,
     freePreview,
     videoUrl,
+    "notesText": pt::text(notes),
     "course": *[_type == "course" && references(^._id)][0] {
       _id,
       title,
@@ -332,6 +335,21 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
         }
       }
     }
+  }
+`)
+
+/**
+ * GROQ query to find video documents matching chapter labels or transcript text chunks.
+ */
+export const SEARCH_VIDEOS_GROQ_QUERY = defineQuery(/* groq */ `
+  *[_type == "video" && (
+    count($terms[chapters[].label match @]) > 0 ||
+    count($terms[chunks[].text match @]) > 0
+  )] {
+    _id,
+    url,
+    chapters,
+    chunks[0...30]
   }
 `)
 

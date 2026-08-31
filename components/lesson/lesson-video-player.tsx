@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getEmbedUrl } from "@/lib/video";
 import { Play } from "lucide-react";
 import posthog from "posthog-js";
@@ -9,7 +9,10 @@ interface LessonVideoPlayerProps {
   videoUrl?: string | null;
   lessonTitle: string;
   lessonSlug: string;
+  duration?: number;
   startSeconds?: number;
+  courseTitle?: string;
+  courseSlug?: string;
   thumbnailUrl?: string | null;
 }
 
@@ -17,21 +20,140 @@ export function LessonVideoPlayer({
   videoUrl,
   lessonTitle,
   lessonSlug,
+  duration = 300,
   startSeconds = 0,
+  courseTitle,
+  courseSlug,
   thumbnailUrl,
 }: LessonVideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(() => startSeconds > 0);
   const parsedVideo = getEmbedUrl(videoUrl, startSeconds);
 
+  // Milestone tracking references
+  const firedMilestones = useRef<Set<number>>(new Set());
+  const completedFired = useRef<boolean>(false);
+  const elapsedSecondsRef = useRef<number>(0);
+  const hasCapturedStart = useRef<boolean>(false);
+
   const handleStartPlay = () => {
     setIsPlaying(true);
-    posthog.capture("video_played", {
-      lesson_title: lessonTitle,
-      lesson_slug: lessonSlug,
-      video_url: videoUrl,
-      start_seconds: startSeconds,
-    });
+
+    if (!hasCapturedStart.current) {
+      hasCapturedStart.current = true;
+      posthog.capture("video_play_started", {
+        lesson_title: lessonTitle,
+        lesson_slug: lessonSlug,
+        course_title: courseTitle,
+        course_slug: courseSlug,
+        video_url: videoUrl,
+        start_seconds: startSeconds,
+        is_resume: startSeconds > 0,
+        duration_seconds: duration,
+      });
+
+      posthog.capture("video_played", {
+        lesson_title: lessonTitle,
+        lesson_slug: lessonSlug,
+        course_title: courseTitle,
+        course_slug: courseSlug,
+        video_url: videoUrl,
+        start_seconds: startSeconds,
+        is_resume: startSeconds > 0,
+        duration_seconds: duration,
+      });
+
+      if (startSeconds > 0) {
+        posthog.capture("lesson_resume_used", {
+          lesson_title: lessonTitle,
+          lesson_slug: lessonSlug,
+          course_title: courseTitle,
+          course_slug: courseSlug,
+          start_seconds: startSeconds,
+          source: "url_param",
+        });
+      }
+    }
   };
+
+  // If initial startSeconds > 0 caused automatic play mount, capture once
+  useEffect(() => {
+    if (startSeconds > 0 && !hasCapturedStart.current) {
+      hasCapturedStart.current = true;
+      posthog.capture("video_play_started", {
+        lesson_title: lessonTitle,
+        lesson_slug: lessonSlug,
+        course_title: courseTitle,
+        course_slug: courseSlug,
+        video_url: videoUrl,
+        start_seconds: startSeconds,
+        is_resume: true,
+        duration_seconds: duration,
+      });
+
+      posthog.capture("video_played", {
+        lesson_title: lessonTitle,
+        lesson_slug: lessonSlug,
+        course_title: courseTitle,
+        course_slug: courseSlug,
+        video_url: videoUrl,
+        start_seconds: startSeconds,
+        is_resume: true,
+        duration_seconds: duration,
+      });
+
+      posthog.capture("lesson_resume_used", {
+        lesson_title: lessonTitle,
+        lesson_slug: lessonSlug,
+        course_title: courseTitle,
+        course_slug: courseSlug,
+        start_seconds: startSeconds,
+        source: "url_param",
+      });
+    }
+  }, [startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug, videoUrl, duration]);
+
+  // Watch depth tracking using elapsed active wall-clock time
+  useEffect(() => {
+    if (!isPlaying || !duration || duration <= 0) return;
+
+    const interval = setInterval(() => {
+      elapsedSecondsRef.current += 1;
+      const totalEstimatedSeconds = startSeconds + elapsedSecondsRef.current;
+      const depthPercentage = Math.min(100, Math.round((totalEstimatedSeconds / duration) * 100));
+
+      const milestones = [25, 50, 75, 90];
+      for (const m of milestones) {
+        if (depthPercentage >= m && !firedMilestones.current.has(m)) {
+          firedMilestones.current.add(m);
+          posthog.capture("video_watch_progress", {
+            lesson_title: lessonTitle,
+            lesson_slug: lessonSlug,
+            course_title: courseTitle,
+            course_slug: courseSlug,
+            milestone_percentage: m,
+            seconds_watched: totalEstimatedSeconds,
+            total_duration: duration,
+          });
+        }
+      }
+
+      // Automatically fire lesson_completed at >= 95% watch depth
+      if (depthPercentage >= 95 && !completedFired.current) {
+        completedFired.current = true;
+        posthog.capture("lesson_completed", {
+          lesson_title: lessonTitle,
+          lesson_slug: lessonSlug,
+          course_title: courseTitle,
+          course_slug: courseSlug,
+          completed_via: "watch_depth_95",
+        });
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug]);
 
   if (!parsedVideo || !parsedVideo.embedUrl) {
     return (

@@ -192,7 +192,10 @@ export function LessonContent({
           videoUrl={lesson.videoUrl}
           lessonTitle={lesson.title}
           lessonSlug={lesson.slug}
+          duration={lesson.duration}
           startSeconds={startSeconds}
+          courseTitle={course.title}
+          courseSlug={course.slug}
           thumbnailUrl={lesson.thumbnailUrl}
         />
       </div>

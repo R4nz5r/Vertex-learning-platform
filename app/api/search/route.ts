@@ -7,7 +7,7 @@ import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { sanityFetch } from "@/sanity/lib/client";
-import { SEARCH_LESSONS_GROQ_QUERY } from "@/sanity/lib/queries";
+import { SEARCH_LESSONS_GROQ_QUERY, SEARCH_VIDEOS_GROQ_QUERY } from "@/sanity/lib/queries";
 import { SearchRequestSchema, ModelOutputSchema, ModelHit } from "@/lib/search/types";
 import { fetchInitialContext, createSearchMcpClient } from "@/lib/search/mcp";
 import { buildSystemPrompt } from "@/lib/search/system-prompt";
@@ -51,38 +51,210 @@ async function executeGroqFallbackSearch(query: string) {
   }
 
   try {
-    const lessons = (await sanityFetch({
-      query: SEARCH_LESSONS_GROQ_QUERY,
-      params: { terms: tokens },
-      revalidate: 60,
-    })) as Array<{
+    const [lessons, videos] = await Promise.all([
+      sanityFetch({
+        query: SEARCH_LESSONS_GROQ_QUERY,
+        params: { terms: tokens },
+        revalidate: 60,
+      }) as Promise<
+        Array<{
+          _id: string;
+          title: string;
+          slug: string;
+          keyPoints?: string[];
+          videoUrl?: string;
+        }>
+      >,
+      sanityFetch({
+        query: SEARCH_VIDEOS_GROQ_QUERY,
+        params: { terms: tokens },
+        revalidate: 60,
+      }).catch(() => []) as Promise<
+        Array<{
+          _id: string;
+          url: string;
+          chapters?: Array<{ startSeconds: number; label: string }>;
+          chunks?: Array<{ startSeconds: number; text: string }>;
+        }>
+      >,
+    ]);
+
+    const lowerQuery = query.toLowerCase().trim();
+    // Normalize singular forms (e.g. "actions" -> "action", "components" -> "component")
+    const normalizedQuery = lowerQuery.replace(/s\b/g, "");
+    const cleanTokens = lowerQuery
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 1);
+
+    // Map videos by URL for fast lookup
+    const videoMap = new Map<string, {
+      chapters?: Array<{ startSeconds: number; label: string }>;
+      chunks?: Array<{ startSeconds: number; text: string }>;
+    }>();
+    for (const v of videos || []) {
+      if (v.url) {
+        videoMap.set(v.url, v);
+      }
+    }
+
+    interface ScoredHit {
+      hit: ModelHit;
+      score: number;
+    }
+
+    const scoredHits: ScoredHit[] = [];
+
+    for (const lesson of lessons as Array<{
       _id: string;
       title: string;
       slug: string;
       keyPoints?: string[];
       videoUrl?: string;
-    }>;
-
-    const lowerQuery = query.toLowerCase();
-    const hits: ModelHit[] = lessons.map((lesson, idx) => {
-      const isExactTitle = lesson.title.toLowerCase().includes(lowerQuery);
-      return {
-        lessonId: lesson._id,
-        kind: "lesson",
-        reason: isExactTitle
-          ? `Covers ${lesson.title} directly in detail.`
-          : `Teaches concepts related to ${query}.`,
-        rank: isExactTitle ? idx + 1 : idx + 10,
-        startSeconds: null,
+      notesText?: string;
+      course?: {
+        modules?: Array<{
+          title: string;
+          lessons?: Array<{ _id: string }>;
+        }>;
       };
-    });
+    }>) {
+      const lessonTitle = (lesson.title || "").toLowerCase();
+      const notesText = (lesson.notesText || "").toLowerCase();
+      const keyPointsText = (lesson.keyPoints || []).join(" ").toLowerCase();
 
-    // Sort by rank
-    hits.sort((a, b) => a.rank - b.rank);
+      // Find parent module title
+      let moduleTitle = "";
+      if (lesson.course?.modules) {
+        for (const mod of lesson.course.modules) {
+          if (mod.lessons?.some((l) => l._id === lesson._id)) {
+            moduleTitle = (mod.title || "").toLowerCase();
+            break;
+          }
+        }
+      }
+
+      // Calculate precision topic relevance score
+      let score = 0;
+
+      // 1. Direct phrase / concept matching
+      const hasExactQueryInTitle =
+        lessonTitle.includes(lowerQuery) || lessonTitle.includes(normalizedQuery);
+      const hasExactQueryInModule =
+        moduleTitle.includes(lowerQuery) || moduleTitle.includes(normalizedQuery);
+      const hasExactQueryInKeyPoints =
+        keyPointsText.includes(lowerQuery) || keyPointsText.includes(normalizedQuery);
+      const hasExactQueryInNotes =
+        notesText.includes(lowerQuery) || notesText.includes(normalizedQuery);
+
+      if (hasExactQueryInTitle) score += 100;
+      if (hasExactQueryInModule) score += 80;
+      if (hasExactQueryInKeyPoints) score += 50;
+      if (hasExactQueryInNotes) score += 30;
+
+      // 2. Multi-token co-occurrence
+      if (cleanTokens.length > 1) {
+        const allInTitle = cleanTokens.every((tok) =>
+          lessonTitle.includes(tok.replace(/s$/, ""))
+        );
+        const allInModule = cleanTokens.every((tok) =>
+          moduleTitle.includes(tok.replace(/s$/, ""))
+        );
+        const allInKeyPoints = cleanTokens.every((tok) =>
+          keyPointsText.includes(tok.replace(/s$/, ""))
+        );
+        const allInNotes = cleanTokens.every((tok) =>
+          notesText.includes(tok.replace(/s$/, ""))
+        );
+
+        if (allInTitle) score += 50;
+        if (allInModule) score += 40;
+        if (allInKeyPoints) score += 30;
+        if (allInNotes) score += 15;
+      } else if (cleanTokens.length === 1) {
+        const singleTok = cleanTokens[0].replace(/s$/, "");
+        if (lessonTitle.includes(singleTok)) score += 50;
+        if (moduleTitle.includes(singleTok)) score += 30;
+        if (keyPointsText.includes(singleTok)) score += 20;
+        if (notesText.includes(singleTok)) score += 10;
+      }
+
+      // If score is 0, this is loose token noise; skip
+      if (score <= 0) continue;
+
+      const vDoc = lesson.videoUrl ? videoMap.get(lesson.videoUrl) : null;
+      let matchedTimestamp: number | null = null;
+      let matchReason = "";
+
+      // Stage one: match video chapters
+      if (vDoc?.chapters && vDoc.chapters.length > 0) {
+        for (const ch of vDoc.chapters) {
+          const chLower = (ch.label || "").toLowerCase();
+          if (chLower.includes(lowerQuery) || chLower.includes(normalizedQuery)) {
+            matchedTimestamp = ch.startSeconds;
+            matchReason = `Video chapter "${ch.label}" teaches this topic directly.`;
+            break;
+          }
+        }
+      }
+
+      // Stage two: match transcript chunks
+      if (matchedTimestamp === null && vDoc?.chunks && vDoc.chunks.length > 0) {
+        for (const chunk of vDoc.chunks) {
+          const chunkLower = (chunk.text || "").toLowerCase();
+          if (chunkLower.includes(lowerQuery) || chunkLower.includes(normalizedQuery)) {
+            matchedTimestamp = chunk.startSeconds;
+            matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
+            break;
+          }
+        }
+      }
+
+      if (matchedTimestamp !== null) {
+        scoredHits.push({
+          score: score + 10,
+          hit: {
+            lessonId: lesson._id,
+            kind: "video",
+            reason: matchReason || `Covers ${lesson.title} at ${matchedTimestamp}s.`,
+            rank: 1,
+            startSeconds: matchedTimestamp,
+          },
+        });
+      }
+
+      scoredHits.push({
+        score,
+        hit: {
+          lessonId: lesson._id,
+          kind: "lesson",
+          reason: hasExactQueryInTitle
+            ? `Covers ${lesson.title} directly in detail.`
+            : `Teaches concepts in ${moduleTitle || lesson.title}.`,
+          rank: 1,
+          startSeconds: null,
+        },
+      });
+    }
+
+    // Determine relevance threshold
+    const maxScore = scoredHits.length > 0 ? Math.max(...scoredHits.map((h) => h.score)) : 0;
+    const threshold = maxScore >= 40 ? 30 : maxScore >= 20 ? 15 : 1;
+
+    // Filter out low-relevance noise
+    const filtered = scoredHits.filter((item) => item.score >= threshold);
+
+    // Sort descending by relevance score
+    filtered.sort((a, b) => b.score - a.score);
+
+    const hits: ModelHit[] = filtered.map((item, idx) => ({
+      ...item.hit,
+      rank: idx + 1,
+    }));
 
     const reply =
       hits.length > 0
-        ? `Found ${hits.length} relevant lesson${hits.length === 1 ? "" : "s"} matching "${query}".`
+        ? `Found ${hits.length} relevant match${hits.length === 1 ? "" : "es"} for "${query}".`
         : `We couldn't find any lessons matching "${query}". Try searching with different keywords.`;
 
     return { hits, reply };
@@ -220,8 +392,10 @@ export async function POST(req: NextRequest) {
         result_count: results.length,
         course_count: courseCount,
         sort,
+        has_results: results.length > 0,
       },
     });
+    await posthog.flush();
   } catch (analyticsErr) {
     console.warn("[Search API] PostHog capture notice:", analyticsErr);
   }
