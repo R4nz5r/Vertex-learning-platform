@@ -71,6 +71,12 @@ function validateAndBuildNdjson() {
   // 3. Strict schema validation
   for (let i = 0; i < docs.length; i++) {
     const doc = docs[i]
+    if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+      console.error(`[Doc #${i + 1}] ❌ Record must be a non-null object.`)
+      validationErrors++
+      continue
+    }
+
     const docPrefix = `[Doc #${i + 1} "${doc._id || 'missing-id'}"]`
 
     // Validate _id
@@ -100,7 +106,7 @@ function validateAndBuildNdjson() {
       console.error(`${docPrefix} ❌ Missing or invalid url. Must be http/https URL.`)
       validationErrors++
     }
-    if (!doc.provider || !['youtube', 'vimeo', 'bunny', 'generic'].includes(doc.provider)) {
+    if (!doc.provider || !['youtube', 'vimeo', 'bunny'].includes(doc.provider)) {
       console.error(`${docPrefix} ❌ Invalid provider: "${doc.provider}".`)
       validationErrors++
     }
@@ -121,6 +127,12 @@ function validateAndBuildNdjson() {
 
         for (let c = 0; c < doc.chapters.length; c++) {
           const ch = doc.chapters[c]
+          if (!ch || typeof ch !== 'object' || Array.isArray(ch)) {
+            console.error(`${docPrefix} ❌ Chapter #${c + 1} must be a non-null object.`)
+            validationErrors++
+            continue
+          }
+
           if (
             typeof ch.startSeconds !== 'number' ||
             isNaN(ch.startSeconds) ||
@@ -164,6 +176,12 @@ function validateAndBuildNdjson() {
       const chunkKeys = new Set()
       for (let k = 0; k < doc.chunks.length; k++) {
         const chunk = doc.chunks[k]
+        if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) {
+          console.error(`${docPrefix} ❌ Chunk #${k + 1} must be a non-null object.`)
+          validationErrors++
+          continue
+        }
+
         if (
           typeof chunk.startSeconds !== 'number' ||
           isNaN(chunk.startSeconds) ||

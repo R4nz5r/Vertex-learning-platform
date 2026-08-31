@@ -75,7 +75,7 @@ export function CourseTechIcon({
   }
 
   // JavaScript: Yellow square with JS
-  if (title.includes("javascript") || slug.includes("javascript") || title.includes("js")) {
+  if (title.includes("javascript") || slug.includes("javascript") || /\bjs\b/.test(title) || /\bjs\b/.test(slug)) {
     return (
       <span
         className={`inline-flex items-center justify-center bg-[#F7DF1E] text-black font-bold select-none shrink-0 ${className}`}
@@ -88,7 +88,7 @@ export function CourseTechIcon({
   }
 
   // TypeScript: Blue square with TS
-  if (title.includes("typescript") || slug.includes("typescript") || title.includes("ts")) {
+  if (title.includes("typescript") || slug.includes("typescript") || /\bts\b/.test(title) || /\bts\b/.test(slug)) {
     return (
       <span
         className={`inline-flex items-center justify-center bg-[#3178C6] text-white font-bold select-none shrink-0 ${className}`}

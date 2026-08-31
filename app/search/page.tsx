@@ -25,7 +25,7 @@ export default function SearchPage() {
       </header>
 
       {/* ── Main Search View Container ── */}
-      <main className="flex-1 w-full">
+      <div className="flex-1 w-full">
         <Suspense
           fallback={
             <div className="w-full max-w-[860px] mx-auto px-4 sm:px-6 pt-12 pb-16">
@@ -40,7 +40,7 @@ export default function SearchPage() {
         >
           <SearchResultsView />
         </Suspense>
-      </main>
+      </div>
     </div>
   );
 }

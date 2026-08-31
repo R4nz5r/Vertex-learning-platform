@@ -343,13 +343,13 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
  */
 export const SEARCH_VIDEOS_GROQ_QUERY = defineQuery(/* groq */ `
   *[_type == "video" && (
-    count($terms[chapters[].label match @]) > 0 ||
-    count($terms[chunks[].text match @]) > 0
+    count($terms[^.chapters[].label match @]) > 0 ||
+    count($terms[^.chunks[].text match @]) > 0
   )] {
     _id,
     url,
     chapters,
-    chunks[0...30]
+    "chunks": chunks[count($terms[^.text match @]) > 0]
   }
 `)
 

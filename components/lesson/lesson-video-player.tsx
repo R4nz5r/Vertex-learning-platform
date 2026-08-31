@@ -20,14 +20,15 @@ export function LessonVideoPlayer({
   videoUrl,
   lessonTitle,
   lessonSlug,
-  duration = 300,
+  duration,
   startSeconds = 0,
   courseTitle,
   courseSlug,
   thumbnailUrl,
 }: LessonVideoPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(() => startSeconds > 0);
   const parsedVideo = getEmbedUrl(videoUrl, startSeconds);
+  const hasValidEmbed = Boolean(parsedVideo && parsedVideo.embedUrl);
+  const [isPlaying, setIsPlaying] = useState(() => Boolean(hasValidEmbed && startSeconds > 0));
 
   // Milestone tracking references
   const firedMilestones = useRef<Set<number>>(new Set());
@@ -36,6 +37,7 @@ export function LessonVideoPlayer({
   const hasCapturedStart = useRef<boolean>(false);
 
   const handleStartPlay = () => {
+    if (!hasValidEmbed) return;
     setIsPlaying(true);
 
     if (!hasCapturedStart.current) {
@@ -48,7 +50,7 @@ export function LessonVideoPlayer({
         video_url: videoUrl,
         start_seconds: startSeconds,
         is_resume: startSeconds > 0,
-        duration_seconds: duration,
+        duration_seconds: duration && duration > 0 ? duration : undefined,
       });
 
       posthog.capture("video_played", {
@@ -59,7 +61,7 @@ export function LessonVideoPlayer({
         video_url: videoUrl,
         start_seconds: startSeconds,
         is_resume: startSeconds > 0,
-        duration_seconds: duration,
+        duration_seconds: duration && duration > 0 ? duration : undefined,
       });
 
       if (startSeconds > 0) {
@@ -77,7 +79,7 @@ export function LessonVideoPlayer({
 
   // If initial startSeconds > 0 caused automatic play mount, capture once
   useEffect(() => {
-    if (startSeconds > 0 && !hasCapturedStart.current) {
+    if (hasValidEmbed && startSeconds > 0 && !hasCapturedStart.current) {
       hasCapturedStart.current = true;
       posthog.capture("video_play_started", {
         lesson_title: lessonTitle,
@@ -87,7 +89,7 @@ export function LessonVideoPlayer({
         video_url: videoUrl,
         start_seconds: startSeconds,
         is_resume: true,
-        duration_seconds: duration,
+        duration_seconds: duration && duration > 0 ? duration : undefined,
       });
 
       posthog.capture("video_played", {
@@ -98,7 +100,7 @@ export function LessonVideoPlayer({
         video_url: videoUrl,
         start_seconds: startSeconds,
         is_resume: true,
-        duration_seconds: duration,
+        duration_seconds: duration && duration > 0 ? duration : undefined,
       });
 
       posthog.capture("lesson_resume_used", {
@@ -110,11 +112,11 @@ export function LessonVideoPlayer({
         source: "url_param",
       });
     }
-  }, [startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug, videoUrl, duration]);
+  }, [hasValidEmbed, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug, videoUrl, duration]);
 
   // Watch depth tracking using elapsed active wall-clock time
   useEffect(() => {
-    if (!isPlaying || !duration || duration <= 0) return;
+    if (!hasValidEmbed || !isPlaying || !duration || duration <= 0) return;
 
     const interval = setInterval(() => {
       elapsedSecondsRef.current += 1;
@@ -153,7 +155,7 @@ export function LessonVideoPlayer({
     return () => {
       clearInterval(interval);
     };
-  }, [isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug]);
+  }, [hasValidEmbed, isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug]);
 
   if (!parsedVideo || !parsedVideo.embedUrl) {
     return (

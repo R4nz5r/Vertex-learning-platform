@@ -4,7 +4,7 @@ The offline tooling that creates and maintains `video` documents in Sanity Studi
 
 ## Architecture
 
-```
+```text
 studio/scripts/ingest/
 ├── parse-video-url.mjs      # URL parser and deterministic ID generator
 ├── chunk.mjs                # Subtitle cue merger and transcript chunker (~45s/350 chars)

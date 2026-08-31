@@ -35,6 +35,21 @@ function resolveLanguageModel() {
   return null;
 }
 
+interface SearchLessonDoc {
+  _id: string;
+  title: string;
+  slug: string;
+  keyPoints?: string[];
+  videoUrl?: string;
+  notesText?: string;
+  course?: {
+    modules?: Array<{
+      title: string;
+      lessons?: Array<{ _id: string }>;
+    }>;
+  };
+}
+
 /**
  * Fallback token-based GROQ search directly against Sanity when LLM/MCP is offline or during cold start.
  */
@@ -56,15 +71,7 @@ async function executeGroqFallbackSearch(query: string) {
         query: SEARCH_LESSONS_GROQ_QUERY,
         params: { terms: tokens },
         revalidate: 60,
-      }) as Promise<
-        Array<{
-          _id: string;
-          title: string;
-          slug: string;
-          keyPoints?: string[];
-          videoUrl?: string;
-        }>
-      >,
+      }) as Promise<SearchLessonDoc[]>,
       sanityFetch({
         query: SEARCH_VIDEOS_GROQ_QUERY,
         params: { terms: tokens },
@@ -80,8 +87,8 @@ async function executeGroqFallbackSearch(query: string) {
     ]);
 
     const lowerQuery = query.toLowerCase().trim();
-    // Normalize singular forms (e.g. "actions" -> "action", "components" -> "component")
-    const normalizedQuery = lowerQuery.replace(/s\b/g, "");
+    // Normalize singular forms (e.g. "actions" -> "action", "components" -> "component") while preserving two-character tokens like "js" or "ts"
+    const normalizedQuery = lowerQuery.replace(/(\w{3,})s\b/g, "$1");
     const cleanTokens = lowerQuery
       .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
@@ -105,20 +112,7 @@ async function executeGroqFallbackSearch(query: string) {
 
     const scoredHits: ScoredHit[] = [];
 
-    for (const lesson of lessons as Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      keyPoints?: string[];
-      videoUrl?: string;
-      notesText?: string;
-      course?: {
-        modules?: Array<{
-          title: string;
-          lessons?: Array<{ _id: string }>;
-        }>;
-      };
-    }>) {
+    for (const lesson of lessons) {
       const lessonTitle = (lesson.title || "").toLowerCase();
       const notesText = (lesson.notesText || "").toLowerCase();
       const keyPointsText = (lesson.keyPoints || []).join(" ").toLowerCase();
@@ -221,20 +215,20 @@ async function executeGroqFallbackSearch(query: string) {
             startSeconds: matchedTimestamp,
           },
         });
+      } else {
+        scoredHits.push({
+          score,
+          hit: {
+            lessonId: lesson._id,
+            kind: "lesson",
+            reason: hasExactQueryInTitle
+              ? `Covers ${lesson.title} directly in detail.`
+              : `Teaches concepts in ${moduleTitle || lesson.title}.`,
+            rank: 1,
+            startSeconds: null,
+          },
+        });
       }
-
-      scoredHits.push({
-        score,
-        hit: {
-          lessonId: lesson._id,
-          kind: "lesson",
-          reason: hasExactQueryInTitle
-            ? `Covers ${lesson.title} directly in detail.`
-            : `Teaches concepts in ${moduleTitle || lesson.title}.`,
-          rank: 1,
-          startSeconds: null,
-        },
-      });
     }
 
     // Determine relevance threshold

@@ -7,7 +7,7 @@ Implement the complete, production-ready Vertex Search results page (`/search`) 
 ## Skills and docs read
 
 - `AGENTS.md` — §1 (search card links straight to the exact second in a lesson's video and plays on site), §2 (work loop), §3 (pixel-perfect desktop reproduction from `vertex-search.png`, responsive down to mobile), §5 (search UI is a client component rendering video results and lesson results; pages display stored data; browser never holds tokens), §6 (Next.js App Router, Tailwind, TypeScript), §7 (search is a full results page with result count and sort control, returning video moments and lesson cards, grounded playback), §11 (ranked results, video result card with clip length/module/lesson label/start seconds action, lesson result card with key points/summary/action, merged ranking), §12, §13 (type check, lint, build).
-- `f:\Nextjs\vertex\design\vertex-search.png` — reference visual design for header badge, query title with highlighted keyword in serif font, count summary, search bar, sort dropdown, horizontal Video Result Cards, horizontal Lesson Result Cards, and bottom catalog CTA banner.
+- `design/vertex-search.png` — reference visual design for header badge, query title with highlighted keyword in serif font, count summary, search bar, sort dropdown, horizontal Video Result Cards, horizontal Lesson Result Cards, and bottom catalog CTA banner.
 - `.claude/skills/create-agent-with-sanity-context/SKILL.md` & `lib/search/types.ts` — search response contract (`SearchResult`, `kind: "video" | "lesson"`, `startSeconds`, `reason`, `keyPoints`, `label`, `moduleTitle`, `href`).
 
 ## Code inspected

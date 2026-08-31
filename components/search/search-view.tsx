@@ -16,16 +16,32 @@ export function SearchResultsView() {
   const searchParams = useSearchParams();
 
   const queryParam = searchParams.get("q") || searchParams.get("query") || "data fetching";
-  const sortParam = (searchParams.get("sort") as SearchSort) || "relevance";
+  const rawSort = searchParams.get("sort");
+  const sortParam: SearchSort =
+    rawSort === "newest" || rawSort === "duration" ? rawSort : "relevance";
 
   const [query, setQuery] = useState(queryParam);
   const [sort, setSort] = useState<SearchSort>(sortParam);
+  const [prevQueryParam, setPrevQueryParam] = useState(queryParam);
+  const [prevSortParam, setPrevSortParam] = useState(sortParam);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [count, setCount] = useState<number>(0);
   const [courseCount, setCourseCount] = useState<number>(0);
   const [reply, setReply] = useState<string>("");
   const [, startTransition] = useTransition();
+
+  // Synchronize controlled state during render when URL parameters change (e.g. browser back/forward)
+  if (queryParam !== prevQueryParam) {
+    setPrevQueryParam(queryParam);
+    setQuery(queryParam);
+    setLoading(true);
+  }
+  if (sortParam !== prevSortParam) {
+    setPrevSortParam(sortParam);
+    setSort(sortParam);
+    setLoading(true);
+  }
 
   // Synchronize URL search params
   const updateUrl = useCallback(

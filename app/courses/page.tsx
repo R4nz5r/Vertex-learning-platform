@@ -7,8 +7,7 @@ import { CourseCard } from "@/components/cards/course-card";
 import { getCourses } from "@/sanity/lib/fetchers";
 import { formatDurationHoursMinutes } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
-import { auth } from "@clerk/nextjs/server";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { CatalogAnalytics } from "@/components/analytics/catalog-analytics";
 
 export const metadata: Metadata = {
   title: "All Courses | Vertex",
@@ -191,20 +190,6 @@ function BottomSteppedGraphic() {
 export default async function AllCoursesPage() {
   const courses: CourseCatalogItem[] = (await getCourses()) || [];
 
-  // Server-side analytics event capture for catalog view
-  const { userId } = await auth();
-  if (userId) {
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId: userId,
-      event: "catalog_viewed",
-      properties: {
-        total_courses: courses.length,
-      },
-    });
-    await posthog.flush();
-  }
-
   return (
     <div
       className="min-h-screen w-full bg-[#FAF7F2] selection:bg-primary-100 selection:text-primary-700"
@@ -213,6 +198,7 @@ export default async function AllCoursesPage() {
         backgroundAttachment: "fixed",
       }}
     >
+      <CatalogAnalytics totalCourses={courses.length} />
       {/* ── Center Framed Website Container (1440px) ── */}
       <div className="max-w-[1440px] w-full mx-auto min-h-screen bg-[#FAF7F2] border-x border-[#EBE4DC] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.02)]">
         {/* ── Top Navigation Bar ── */}

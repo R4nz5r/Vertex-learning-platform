@@ -84,8 +84,8 @@ function ThumbnailBackground({ result }: { result: SearchResult }) {
 }
 
 export function VideoResultCard({ result, query = "", rank = 1 }: VideoResultCardProps) {
-  // Format timestamp duration: use startSeconds if available or lesson duration
-  const displayTimestamp = formatTimestamp(result.startSeconds ?? result.duration ?? 0);
+  // Format timestamp duration: use lesson duration
+  const displayTimestamp = formatTimestamp(result.duration ?? 0);
   const watchFromLabel = result.startSeconds ? formatTimestamp(result.startSeconds) : "start";
 
   const handleResultClick = () => {

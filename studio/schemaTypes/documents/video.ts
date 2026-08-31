@@ -29,7 +29,7 @@ export const videoType = defineType({
       description: 'Canonical video URL matching lesson videoUrl',
       validation: (rule) =>
         rule.required().uri({
-          scheme: ['http', 'https'],
+          scheme: ['https'],
         }),
     }),
     defineField({
@@ -42,7 +42,6 @@ export const videoType = defineType({
           {title: 'YouTube', value: 'youtube'},
           {title: 'Vimeo', value: 'vimeo'},
           {title: 'Bunny Stream', value: 'bunny'},
-          {title: 'Generic', value: 'generic'},
         ],
       },
       validation: (rule) => rule.required(),

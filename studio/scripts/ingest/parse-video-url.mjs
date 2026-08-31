@@ -14,7 +14,7 @@
 export function extractYouTubeId(url) {
   if (!url || typeof url !== 'string') return null
   const match = url.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
   )
   return match ? match[1] : null
 }

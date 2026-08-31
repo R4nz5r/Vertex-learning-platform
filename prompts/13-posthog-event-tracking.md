@@ -88,7 +88,7 @@ Implement comprehensive PostHog event tracking across Vertex for all features bu
 
 1. Visit `/search?q=caching` -> Verify `search_performed` event.
 2. Click a video result card ("Watch from 02:15") -> Verify `search_result_clicked` event with `result_type: "video"`.
-3. On lesson page, start video -> Verify `video_play_started` and `lesson_resume_used` (with `start_seconds: 135`).
+3. Open a timestamped video result at 02:15, and on lesson page start video -> Verify both `video_play_started` and `lesson_resume_used` (with `start_seconds: 135`).
 4. Allow playback to progress -> Verify `video_watch_progress` at 25%, 50%, 75%, 90% and `lesson_completed` at ≥ 95%.
 5. Click empty search suggested topic on `/search?q=xyz` -> Verify `search_empty_topic_clicked`.
 6. Visit `/courses` -> Verify `catalog_viewed`.
