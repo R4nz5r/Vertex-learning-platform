@@ -5,8 +5,10 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   ui_host: "https://us.posthog.com",
   // Include the defaults option as required by PostHog
   defaults: "2026-01-30",
-  // Enables capturing unhandled exceptions via Error Tracking
-  capture_exceptions: true,
+  // Enables capturing unhandled exceptions via Error Tracking.
+  // Gated to production so dev-build errors on developer machines do not
+  // open error tracking issues and dilute the signal.
+  capture_exceptions: process.env.NODE_ENV === "production",
   // Turn on debug in development mode
   debug: process.env.NODE_ENV === "development",
 });
