@@ -174,6 +174,7 @@ function validateAndBuildNdjson() {
       validationErrors++
     } else {
       const chunkKeys = new Set()
+      let lastChunkSeconds = -1
       for (let k = 0; k < doc.chunks.length; k++) {
         const chunk = doc.chunks[k]
         if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) {
@@ -190,7 +191,14 @@ function validateAndBuildNdjson() {
         ) {
           console.error(`${docPrefix} ❌ Chunk #${k + 1} has invalid startSeconds: ${chunk.startSeconds}`)
           validationErrors++
+        } else if (chunk.startSeconds < lastChunkSeconds) {
+          console.error(
+            `${docPrefix} ❌ Chunks are not sorted monotonically (${chunk.startSeconds}s < ${lastChunkSeconds}s).`
+          )
+          validationErrors++
         }
+        lastChunkSeconds = chunk.startSeconds
+
         if (!chunk.text || typeof chunk.text !== 'string' || chunk.text.trim() === '') {
           console.error(`${docPrefix} ❌ Chunk #${k + 1} is missing text.`)
           validationErrors++

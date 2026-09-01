@@ -15,7 +15,7 @@ export function SearchResultsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const queryParam = searchParams.get("q") || searchParams.get("query") || "data fetching";
+  const queryParam = searchParams.get("q") || searchParams.get("query") || "";
   const rawSort = searchParams.get("sort");
   const sortParam: SearchSort =
     rawSort === "newest" || rawSort === "duration" ? rawSort : "relevance";
@@ -24,7 +24,7 @@ export function SearchResultsView() {
   const [sort, setSort] = useState<SearchSort>(sortParam);
   const [prevQueryParam, setPrevQueryParam] = useState(queryParam);
   const [prevSortParam, setPrevSortParam] = useState(sortParam);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(queryParam.trim()));
   const [results, setResults] = useState<SearchResult[]>([]);
   const [count, setCount] = useState<number>(0);
   const [courseCount, setCourseCount] = useState<number>(0);
@@ -35,12 +35,12 @@ export function SearchResultsView() {
   if (queryParam !== prevQueryParam) {
     setPrevQueryParam(queryParam);
     setQuery(queryParam);
-    setLoading(true);
+    setLoading(Boolean(queryParam.trim()));
   }
   if (sortParam !== prevSortParam) {
     setPrevSortParam(sortParam);
     setSort(sortParam);
-    setLoading(true);
+    setLoading(Boolean(queryParam.trim()));
   }
 
   // Synchronize URL search params
@@ -50,7 +50,8 @@ export function SearchResultsView() {
         const params = new URLSearchParams();
         if (newQuery.trim()) params.set("q", newQuery.trim());
         if (newSort && newSort !== "relevance") params.set("sort", newSort);
-        router.replace(`/search?${params.toString()}`, { scroll: false });
+        const searchStr = params.toString();
+        router.replace(searchStr ? `/search?${searchStr}` : "/search", { scroll: false });
       });
     },
     [router]
@@ -117,9 +118,9 @@ export function SearchResultsView() {
         query: trimmed,
         query_length: trimmed.length,
       });
-      setLoading(true);
-      updateUrl(trimmed, sort);
     }
+    setLoading(Boolean(trimmed));
+    updateUrl(trimmed, sort);
   };
 
   const handleSortChange = (newSort: SearchSort) => {

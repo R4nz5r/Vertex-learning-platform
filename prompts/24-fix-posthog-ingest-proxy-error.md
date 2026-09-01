@@ -34,7 +34,7 @@ Resolve the client-side `[PostHog.js] "Bad HTTP status: 500 Internal Server Erro
 
 ## Files to create or change
 
-```
+```text
 instrumentation-client.ts                       [MODIFY] Use direct NEXT_PUBLIC_POSTHOG_HOST and check token validity
 lib/posthog-server.ts                           [MODIFY] Ensure fallback host https://us.i.posthog.com
 ```

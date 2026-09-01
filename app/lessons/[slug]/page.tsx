@@ -216,6 +216,7 @@ export default async function LessonDetailPage({
               moduleTitle={moduleTitle}
               lessonNumberLabel={lessonNumberLabel}
               startSeconds={startSeconds}
+              totalCourseLessons={flatLessons.length}
             />
 
             {/* ── Bottom Previous / Next Lesson Navigation Bar ── */}

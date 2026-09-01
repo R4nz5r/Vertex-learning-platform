@@ -53,22 +53,19 @@ export function LessonSidebar({
   const modules = React.useMemo(() => course.modules || [], [course.modules]);
   const totalModules = modules.length;
 
-  // Flatten all course lessons and derive default preceding lessons (pre-completed)
+  // Flatten all course lessons
   const { allLessons, defaultPrecedingSlugs } = React.useMemo(() => {
     const lessons: SidebarLesson[] = [];
     const preceding: string[] = [];
 
-    modules.forEach((mod, mIdx) => {
+    modules.forEach((mod) => {
       (mod.lessons || []).forEach((les) => {
         lessons.push(les);
-        if (mIdx < currentModuleIndex) {
-          preceding.push(les.slug);
-        }
       });
     });
 
     return { allLessons: lessons, defaultPrecedingSlugs: preceding };
-  }, [modules, currentModuleIndex]);
+  }, [modules]);
 
   const progress = useCourseProgress(course.slug, defaultPrecedingSlugs);
   const completedSet = new Set(progress.completedLessons);

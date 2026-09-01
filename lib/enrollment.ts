@@ -54,6 +54,20 @@ function getStoredSnapshot(): Record<string, number> {
   }
 }
 
+const REGISTERED_COURSES_KEY = "vertex_learner_registered_courses";
+
+function getRegisteredCourses(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(REGISTERED_COURSES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch {}
+  return new Set();
+}
+
 /**
  * Register that the current learner is enrolled/engaged with a course.
  */
@@ -61,12 +75,24 @@ export function registerCourseLearner(courseSlug: string, courseTitle?: string):
   if (typeof window === "undefined" || !courseSlug) return;
 
   try {
+    const registered = getRegisteredCourses();
+    const isNewRegistration = !registered.has(courseSlug);
+
     const current = getEnrollmentsMap();
     const currentCount = current[courseSlug] || 0;
-    // Track unique learner engagement (increments if not yet counted)
+
+    let updatedCount = currentCount;
+    if (isNewRegistration) {
+      registered.add(courseSlug);
+      localStorage.setItem(REGISTERED_COURSES_KEY, JSON.stringify(Array.from(registered)));
+      updatedCount = Math.max(1, currentCount + 1);
+    } else {
+      updatedCount = Math.max(1, currentCount);
+    }
+
     const updated = Object.freeze({
       ...current,
-      [courseSlug]: Math.max(1, currentCount + 1),
+      [courseSlug]: updatedCount,
     });
 
     const raw = JSON.stringify(updated);
@@ -80,10 +106,12 @@ export function registerCourseLearner(courseSlug: string, courseTitle?: string):
       })
     );
 
-    posthog.capture("course_learner_engaged", {
-      course_slug: courseSlug,
-      course_title: courseTitle,
-    });
+    if (isNewRegistration) {
+      posthog.capture("course_learner_engaged", {
+        course_slug: courseSlug,
+        course_title: courseTitle,
+      });
+    }
   } catch (err) {
     console.error("Failed to register course learner:", err);
   }

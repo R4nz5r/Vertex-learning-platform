@@ -42,7 +42,7 @@ Implement dynamic, real-time student count tracking across course detail pages (
 
 ## Files to create or change
 
-```
+```text
 lib/enrollment.ts                               [NEW] Reactive store for course learner enrollment and live student counts
 components/course/course-hero.tsx               [MODIFY] Use useCourseStudentCount for live dynamic student count display
 ```

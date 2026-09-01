@@ -32,7 +32,7 @@ Resolve the React runtime error `The result of getServerSnapshot should be cache
 
 ## Files to create or change
 
-```
+```text
 lib/enrollment.ts                               [MODIFY] Ensure referential stability for getServerSnapshot and getStoredSnapshot
 ```
 

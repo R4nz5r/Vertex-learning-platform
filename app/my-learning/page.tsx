@@ -224,9 +224,6 @@ export default async function MyLearningPage() {
     icon: resolveCourseIcon(course),
   }));
 
-  const inProgressCourses = dashboardCourses.slice(0, 2);
-  const recommendedCourses = dashboardCourses.slice(2);
-
   return (
     <div
       className="min-h-screen w-full bg-[#FAF7F2] selection:bg-primary-100 selection:text-primary-700"
@@ -353,8 +350,7 @@ export default async function MyLearningPage() {
           ) : (
             /* ── Signed-In User Dynamic Learning Dashboard ── */
             <MyLearningDashboard
-              inProgressCourses={inProgressCourses}
-              recommendedCourses={recommendedCourses}
+              allCourses={dashboardCourses}
             />
           )}
         </main>

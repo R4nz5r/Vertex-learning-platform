@@ -49,7 +49,7 @@ Fix the course completion and module completion logic so learners can complete a
 
 ## Files to create or change
 
-```
+```text
 lib/progress.ts                       [NEW] Progress helper and localStorage persistence for completed lessons
 components/lesson/lesson-sidebar.tsx   [MODIFY] Connect to dynamic completed lessons state, accurate module checkmarks, and 100% completion support
 components/lesson/lesson-navigation.tsx [MODIFY] Add "Complete & Next Lesson" and "Complete Course" CTA buttons with completion handler

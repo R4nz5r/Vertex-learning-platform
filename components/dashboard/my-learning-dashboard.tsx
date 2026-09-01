@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -17,7 +17,7 @@ import { CourseCard } from "@/components/cards/course-card";
 import { MyLearningCard, type MyLearningModule } from "@/components/cards/my-learning-card";
 import { MyLearningResumeBanner } from "@/components/cards/my-learning-resume-banner";
 import { formatDurationHoursMinutes } from "@/lib/format";
-import { useCourseProgress } from "@/lib/progress";
+import { getStoredProgress, PROGRESS_EVENT_NAME } from "@/lib/progress";
 import { useCourseBookmarks } from "@/lib/bookmarks";
 
 export interface DashboardLesson {
@@ -49,64 +49,115 @@ export interface DashboardCourse {
 }
 
 interface MyLearningDashboardProps {
-  inProgressCourses: DashboardCourse[];
-  recommendedCourses: DashboardCourse[];
+  allCourses?: DashboardCourse[];
+  inProgressCourses?: DashboardCourse[];
+  recommendedCourses?: DashboardCourse[];
   defaultPrecedingLessonsMap?: Record<string, string[]>;
 }
 
 type FilterType = "all" | "in-progress" | "completed" | "bookmarked";
 
 export function MyLearningDashboard({
-  inProgressCourses,
-  recommendedCourses,
+  allCourses,
+  inProgressCourses: propInProgress,
+  recommendedCourses: propRecommended,
   defaultPrecedingLessonsMap = {},
 }: MyLearningDashboardProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const bookmarkedSlugs = useCourseBookmarks();
 
+  // Subscribe to progress storage changes for reactive dashboard updates
+  const progressVersion = useSyncExternalStore(
+    (callback: () => void) => {
+      if (typeof window === "undefined") return () => {};
+      window.addEventListener(PROGRESS_EVENT_NAME, callback);
+      window.addEventListener("storage", callback);
+      return () => {
+        window.removeEventListener(PROGRESS_EVENT_NAME, callback);
+        window.removeEventListener("storage", callback);
+      };
+    },
+    () => {
+      if (typeof window === "undefined") return "0";
+      return Object.keys(localStorage).map((k) => `${k}:${localStorage.getItem(k)}`).join("|");
+    },
+    () => "0"
+  );
+
   const allAvailableCourses = useMemo(() => {
+    if (allCourses && allCourses.length > 0) {
+      return allCourses;
+    }
     const map = new Map<string, DashboardCourse>();
-    inProgressCourses.forEach((c) => map.set(c.slug, c));
-    recommendedCourses.forEach((c) => {
+    (propInProgress || []).forEach((c) => map.set(c.slug, c));
+    (propRecommended || []).forEach((c) => {
       if (!map.has(c.slug)) map.set(c.slug, c);
     });
     return Array.from(map.values());
-  }, [inProgressCourses, recommendedCourses]);
+  }, [allCourses, propInProgress, propRecommended]);
 
   const bookmarkedCourses = useMemo(() => {
     return allAvailableCourses.filter((c) => bookmarkedSlugs.includes(c.slug));
   }, [allAvailableCourses, bookmarkedSlugs]);
 
-  const course1 = inProgressCourses[0];
-  const course2 = inProgressCourses[1];
-
-  const prog1 = useCourseProgress(course1?.slug || "", defaultPrecedingLessonsMap[course1?.slug || ""] || []);
-  const prog2 = useCourseProgress(course2?.slug || "", defaultPrecedingLessonsMap[course2?.slug || ""] || []);
-
   const progressMap = useMemo(() => {
-    const map = new Map<string, { isCompleted: boolean; completedLessonsCount: number; totalLessons: number }>();
+    // progressVersion dependency triggers recomputation when storage updates
+    void progressVersion;
+
+    const map = new Map<string, { isCompleted: boolean; isInProgress: boolean; completedLessonsCount: number; totalLessons: number }>();
 
     allAvailableCourses.forEach((c) => {
-      const allL = (c.modules || []).flatMap((m) => m.lessons || []);
+      const allL = (c.modules || []).flatMap((m) => m.lessons || []).filter((l) => Boolean(l?.slug));
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
-      const prog = c.slug === course1?.slug ? prog1 : c.slug === course2?.slug ? prog2 : { completedLessons: [], isCourseCompleted: false };
+      const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
       const set = new Set(prog.completedLessons);
       const isComp = prog.isCourseCompleted || (allL.length > 0 && allL.every((l) => set.has(l.slug))) || (allL.length === 0 && set.size >= total);
+      const inProg = !isComp && (set.size > 0 || Boolean(prog.lastWatchedSlug));
       const count = isComp ? total : Math.min(total, set.size);
 
-      map.set(c.slug, { isCompleted: isComp, completedLessonsCount: count, totalLessons: total });
+      map.set(c.slug, { isCompleted: isComp, isInProgress: inProg, completedLessonsCount: count, totalLessons: total });
     });
 
     return map;
-  }, [allAvailableCourses, course1, course2, prog1, prog2]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, progressVersion]);
 
-  // Aggregate stats
+  // Derive enrolled / active courses from actual learner progress
+  const { activeCourses, recommendedCoursesList } = useMemo(() => {
+    const active: DashboardCourse[] = [];
+    const recommended: DashboardCourse[] = [];
+
+    allAvailableCourses.forEach((c) => {
+      const data = progressMap.get(c.slug);
+      if (data && (data.isCompleted || data.isInProgress)) {
+        active.push(c);
+      } else {
+        recommended.push(c);
+      }
+    });
+
+    // If no progress has been recorded yet, present initial courses as active
+    if (active.length === 0 && allAvailableCourses.length > 0) {
+      const initial = propInProgress && propInProgress.length > 0 ? propInProgress : allAvailableCourses.slice(0, 2);
+      const initialSlugs = new Set(initial.map((c) => c.slug));
+      return {
+        activeCourses: initial,
+        recommendedCoursesList: allAvailableCourses.filter((c) => !initialSlugs.has(c.slug)),
+      };
+    }
+
+    return {
+      activeCourses: active,
+      recommendedCoursesList: propRecommended && propRecommended.length > 0 ? propRecommended : recommended,
+    };
+  }, [allAvailableCourses, progressMap, propInProgress, propRecommended]);
+
+  // Aggregate stats across all active courses
   const { completedCoursesCount, inProgressCoursesCount, totalCompletedLessons } = useMemo(() => {
     let completedCourses = 0;
     let inProgress = 0;
     let completedLessons = 0;
 
-    inProgressCourses.forEach((c) => {
+    activeCourses.forEach((c) => {
       const data = progressMap.get(c.slug);
       if (data) {
         if (data.isCompleted) {
@@ -123,21 +174,21 @@ export function MyLearningDashboard({
       inProgressCoursesCount: inProgress,
       totalCompletedLessons: completedLessons,
     };
-  }, [inProgressCourses, progressMap]);
+  }, [activeCourses, progressMap]);
 
   // Filtered course items
   const filteredCourses = useMemo(() => {
-    if (filter === "all") return inProgressCourses;
+    if (filter === "all") return activeCourses;
     if (filter === "bookmarked") return bookmarkedCourses;
-    return inProgressCourses.filter((c) => {
+    return activeCourses.filter((c) => {
       const data = progressMap.get(c.slug);
       if (filter === "completed") return data?.isCompleted;
       if (filter === "in-progress") return !data?.isCompleted;
       return true;
     });
-  }, [inProgressCourses, filter, progressMap, bookmarkedCourses]);
+  }, [activeCourses, filter, progressMap, bookmarkedCourses]);
 
-  const primaryCourse = inProgressCourses[0];
+  const primaryCourse = activeCourses[0] || allAvailableCourses[0];
   const primaryDefaults = primaryCourse ? defaultPrecedingLessonsMap[primaryCourse.slug] || [] : [];
 
   return (
@@ -234,7 +285,7 @@ export function MyLearningDashboard({
                   : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
-              All ({inProgressCourses.length})
+              All ({activeCourses.length})
             </button>
             <button
               type="button"
@@ -325,7 +376,7 @@ export function MyLearningDashboard({
       </section>
 
       {/* ── Recommended / Catalog Discovery Section ── */}
-      {recommendedCourses.length > 0 && (
+      {recommendedCoursesList.length > 0 && (
         <section aria-labelledby="recommended-courses-heading" className="pt-4">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
@@ -344,7 +395,7 @@ export function MyLearningDashboard({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {recommendedCourses.map((course) => {
+            {recommendedCoursesList.map((course) => {
               const formattedDuration = formatDurationHoursMinutes(course.totalDuration || 0);
 
               return (

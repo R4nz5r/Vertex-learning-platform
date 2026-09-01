@@ -45,7 +45,7 @@ Add a dedicated **"Bookmarked"** filter tab to the **My Learning** dashboard (`/
 
 ## Files to create or change
 
-```
+```text
 components/dashboard/my-learning-dashboard.tsx  [MODIFY] Integrate useCourseBookmarks, add "Bookmarked" filter tab, and render bookmarked courses grid
 app/my-learning/page.tsx                        [MODIFY] Pass complete courses list to MyLearningDashboard if needed
 ```

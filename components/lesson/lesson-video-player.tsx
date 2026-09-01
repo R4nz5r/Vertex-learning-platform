@@ -14,6 +14,7 @@ interface LessonVideoPlayerProps {
   startSeconds?: number;
   courseTitle?: string;
   courseSlug?: string;
+  totalCourseLessons?: number;
   thumbnailUrl?: string | null;
 }
 
@@ -25,6 +26,7 @@ export function LessonVideoPlayer({
   startSeconds = 0,
   courseTitle,
   courseSlug,
+  totalCourseLessons,
   thumbnailUrl,
 }: LessonVideoPlayerProps) {
   const parsedVideo = getEmbedUrl(videoUrl, startSeconds);
@@ -144,7 +146,7 @@ export function LessonVideoPlayer({
       if (depthPercentage >= 95 && !completedFired.current) {
         completedFired.current = true;
         if (courseSlug) {
-          markLessonCompleted(courseSlug, lessonSlug);
+          markLessonCompleted(courseSlug, lessonSlug, totalCourseLessons);
         }
         posthog.capture("lesson_completed", {
           lesson_title: lessonTitle,
@@ -159,7 +161,7 @@ export function LessonVideoPlayer({
     return () => {
       clearInterval(interval);
     };
-  }, [hasValidEmbed, isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug]);
+  }, [hasValidEmbed, isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug, totalCourseLessons]);
 
   if (!parsedVideo || !parsedVideo.embedUrl) {
     return (

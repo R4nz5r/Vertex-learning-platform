@@ -127,11 +127,12 @@ export default async function CourseDetailPage({ params }: PageProps) {
   for (const mod of modules) {
     if (Array.isArray(mod.lessons)) {
       for (const lesson of mod.lessons) {
+        if (!lesson?.slug) continue;
         totalLessonsCount++;
-        if (lesson?.duration) {
+        if (lesson.duration) {
           totalSeconds += lesson.duration;
         }
-        if (!firstLessonSlug && lesson?.slug) {
+        if (!firstLessonSlug) {
           firstLessonSlug = lesson.slug;
         }
       }

@@ -37,7 +37,7 @@ Configure the student count display across course hero and lesson pages to refle
 
 ## Files to create or change
 
-```
+```text
 lib/enrollment.ts                               [MODIFY] Count real active learners only, without synthetic seed baseline
 components/course/course-hero.tsx               [MODIFY] Pluralize "student" vs "students" and register active visit
 components/lesson/lesson-content.tsx            [MODIFY] Connect to useCourseStudentCount for live real count

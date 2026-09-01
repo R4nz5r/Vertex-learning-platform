@@ -29,6 +29,7 @@ function GithubIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
+
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { LessonVideoPlayer } from "./lesson-video-player";
 import { PortableTextRenderer } from "./portable-text-renderer";
@@ -72,6 +73,7 @@ interface LessonContentProps {
   moduleTitle: string;
   lessonNumberLabel: string; // e.g. "LESSON 5.1"
   startSeconds?: number;
+  totalCourseLessons?: number;
 }
 
 export function LessonContent({
@@ -80,6 +82,7 @@ export function LessonContent({
   moduleTitle,
   lessonNumberLabel,
   startSeconds,
+  totalCourseLessons,
 }: LessonContentProps) {
   const [activeTab, setActiveTab] = useState<"content" | "notes">("content");
   const { isBookmarked: bookmarked, toggle: handleBookmarkToggle } = useLessonBookmark(
@@ -97,7 +100,7 @@ export function LessonContent({
   const level = course.level || "Intermediate";
 
   const handleCompleteToggle = () => {
-    toggleLessonCompleted(course.slug, lesson.slug);
+    toggleLessonCompleted(course.slug, lesson.slug, totalCourseLessons);
   };
 
   const getResourceIcon = (type?: string, title?: string) => {
@@ -221,6 +224,7 @@ export function LessonContent({
           startSeconds={startSeconds}
           courseTitle={course.title}
           courseSlug={course.slug}
+          totalCourseLessons={totalCourseLessons}
           thumbnailUrl={lesson.thumbnailUrl}
         />
       </div>

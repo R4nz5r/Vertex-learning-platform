@@ -56,7 +56,7 @@ Implement the **My Learning** page (`/my-learning`) for Vertex, providing learne
 
 ## Files to create or change
 
-```
+```text
 app/my-learning/page.tsx           [NEW] Main My Learning page with auth state handling, stats, resume banner, and in-progress courses
 components/cards/my-learning-card.tsx [NEW] Dedicated learning progress card displaying course thumbnail, module info, progress bar, and resume action
 components/nav/navbar.tsx          [MODIFY] Ensure active route detection or correct active link highlighting for /my-learning

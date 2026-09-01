@@ -31,8 +31,8 @@ export default function SearchPage() {
             <div className="w-full max-w-[860px] mx-auto px-4 sm:px-6 pt-12 pb-16">
               <div className="flex flex-col items-center mb-8">
                 <div className="w-24 h-5 bg-neutral-200 rounded-full mb-3 animate-pulse" />
-                <div className="w-72 h-10 bg-neutral-200 rounded mb-2 animate-pulse" />
-                <div className="w-48 h-4 bg-neutral-200 rounded animate-pulse" />
+                <div className="w-72 h-10 bg-neutral-200 rounded-sm mb-2 animate-pulse" />
+                <div className="w-48 h-4 bg-neutral-200 rounded-sm animate-pulse" />
               </div>
               <SearchListSkeleton />
             </div>

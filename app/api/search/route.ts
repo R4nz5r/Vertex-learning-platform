@@ -12,6 +12,7 @@ import { SearchRequestSchema, ModelOutputSchema, ModelHit } from "@/lib/search/t
 import { fetchInitialContext, createSearchMcpClient } from "@/lib/search/mcp";
 import { buildSystemPrompt } from "@/lib/search/system-prompt";
 import { groundSearchHits } from "@/lib/search/ground";
+import { getVideoLookupKey } from "@/lib/video";
 import { checkRateLimit, getClientIp } from "@/lib/search/rate-limit";
 
 export const runtime = "nodejs";
@@ -94,13 +95,17 @@ async function executeGroqFallbackSearch(query: string) {
       .split(/\s+/)
       .filter((t) => t.length > 1);
 
-    // Map videos by URL for fast lookup
+    // Map videos by normalized key and URL for fast lookup
     const videoMap = new Map<string, {
       chapters?: Array<{ startSeconds: number; label: string }>;
       chunks?: Array<{ startSeconds: number; text: string }>;
     }>();
     for (const v of videos || []) {
       if (v.url) {
+        const key = getVideoLookupKey(v.url);
+        if (key) {
+          videoMap.set(key, v);
+        }
         videoMap.set(v.url, v);
       }
     }
@@ -112,7 +117,16 @@ async function executeGroqFallbackSearch(query: string) {
 
     const scoredHits: ScoredHit[] = [];
 
-    for (const lesson of lessons) {
+    // Deduplicate candidate lessons by identity
+    const candidateLessonsMap = new Map<string, SearchLessonDoc>();
+    for (const l of lessons || []) {
+      if (l?._id && !candidateLessonsMap.has(l._id)) {
+        candidateLessonsMap.set(l._id, l);
+      }
+    }
+    const candidateLessons = Array.from(candidateLessonsMap.values());
+
+    for (const lesson of candidateLessons) {
       const lessonTitle = (lesson.title || "").toLowerCase();
       const notesText = (lesson.notesText || "").toLowerCase();
       const keyPointsText = (lesson.keyPoints || []).join(" ").toLowerCase();
@@ -176,7 +190,8 @@ async function executeGroqFallbackSearch(query: string) {
       // If score is 0, this is loose token noise; skip
       if (score <= 0) continue;
 
-      const vDoc = lesson.videoUrl ? videoMap.get(lesson.videoUrl) : null;
+      const vKey = lesson.videoUrl ? getVideoLookupKey(lesson.videoUrl) : null;
+      const vDoc = (vKey ? videoMap.get(vKey) : null) || (lesson.videoUrl ? videoMap.get(lesson.videoUrl) : null);
       let matchedTimestamp: number | null = null;
       let matchReason = "";
 

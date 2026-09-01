@@ -60,7 +60,7 @@ Implement complete, reactive bookmarking functionality across course detail page
 
 ## Files to create or change
 
-```
+```text
 lib/bookmarks.ts                                [NEW] Reactive client store for course & lesson bookmarks using useSyncExternalStore
 components/course/course-hero.tsx               [MODIFY] Add courseSlug prop, wire useCourseBookmark, toggle active styling & text
 app/courses/[slug]/page.tsx                     [MODIFY] Pass courseSlug={slug} to CourseHero

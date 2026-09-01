@@ -88,7 +88,7 @@ export function MyLearningCard({
     return allLessons.find((item) => !completedSet.has(item.lesson.slug)) || allLessons[0];
   }, [isCompleted, allLessons, completedSet]);
 
-  const nextLessonSlug = nextItem ? nextItem.lesson.slug : allLessons[0]?.lesson?.slug;
+  const nextLessonSlug = isCompleted ? null : nextItem ? nextItem.lesson.slug : allLessons[0]?.lesson?.slug;
   const nextLessonTitle = nextItem ? nextItem.lesson.title : null;
   const nextModuleTitle = nextItem ? nextItem.moduleTitle : null;
 
