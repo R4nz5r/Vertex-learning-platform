@@ -115,12 +115,22 @@ export function SearchResultsView() {
     const trimmed = query.trim();
     if (trimmed) {
       posthog.capture("search_submitted", {
-        query: trimmed,
         query_length: trimmed.length,
       });
     }
-    setLoading(Boolean(trimmed));
-    updateUrl(trimmed, sort);
+    if (trimmed !== queryParam || sort !== sortParam) {
+      setLoading(Boolean(trimmed));
+      updateUrl(trimmed, sort);
+    }
+  };
+
+  const handleClear = () => {
+    setQuery("");
+    setLoading(false);
+    setResults([]);
+    setCount(0);
+    setCourseCount(0);
+    updateUrl("", sort);
   };
 
   const handleSortChange = (newSort: SearchSort) => {
@@ -139,6 +149,7 @@ export function SearchResultsView() {
         loading={loading}
         onQueryChange={setQuery}
         onSubmit={handleSubmit}
+        onClear={handleClear}
       />
 
       {/* ── Controls Bar ── */}

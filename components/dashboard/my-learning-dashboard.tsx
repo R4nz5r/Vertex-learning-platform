@@ -135,27 +135,18 @@ export function MyLearningDashboard({
       }
     });
 
-    // If no progress has been recorded yet, present initial courses as active
-    if (active.length === 0 && allAvailableCourses.length > 0) {
-      const initial = propInProgress && propInProgress.length > 0 ? propInProgress : allAvailableCourses.slice(0, 2);
-      const initialSlugs = new Set(initial.map((c) => c.slug));
-      return {
-        activeCourses: initial,
-        recommendedCoursesList: allAvailableCourses.filter((c) => !initialSlugs.has(c.slug)),
-      };
-    }
-
     return {
       activeCourses: active,
-      recommendedCoursesList: propRecommended && propRecommended.length > 0 ? propRecommended : recommended,
+      recommendedCoursesList: recommended,
     };
-  }, [allAvailableCourses, progressMap, propInProgress, propRecommended]);
+  }, [allAvailableCourses, progressMap]);
 
   // Aggregate stats across all active courses
-  const { completedCoursesCount, inProgressCoursesCount, totalCompletedLessons } = useMemo(() => {
+  const { completedCoursesCount, inProgressCoursesCount, totalCompletedLessons, totalSecondsLearned } = useMemo(() => {
     let completedCourses = 0;
     let inProgress = 0;
     let completedLessons = 0;
+    let secondsLearned = 0;
 
     activeCourses.forEach((c) => {
       const data = progressMap.get(c.slug);
@@ -166,6 +157,17 @@ export function MyLearningDashboard({
           inProgress += 1;
         }
         completedLessons += data.completedLessonsCount;
+
+        // Calculate learned seconds based on completed lessons
+        const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
+        const completedSlugs = new Set(prog.completedLessons);
+        (c.modules || []).forEach((m) => {
+          (m.lessons || []).forEach((l) => {
+            if (l?.slug && completedSlugs.has(l.slug) && l.duration) {
+              secondsLearned += l.duration;
+            }
+          });
+        });
       }
     });
 
@@ -173,8 +175,9 @@ export function MyLearningDashboard({
       completedCoursesCount: completedCourses,
       inProgressCoursesCount: inProgress,
       totalCompletedLessons: completedLessons,
+      totalSecondsLearned: secondsLearned,
     };
-  }, [activeCourses, progressMap]);
+  }, [activeCourses, defaultPrecedingLessonsMap, progressMap]);
 
   // Filtered course items
   const filteredCourses = useMemo(() => {
@@ -188,7 +191,7 @@ export function MyLearningDashboard({
     });
   }, [activeCourses, filter, progressMap, bookmarkedCourses]);
 
-  const primaryCourse = activeCourses[0] || allAvailableCourses[0];
+  const primaryCourse = activeCourses[0] || null;
   const primaryDefaults = primaryCourse ? defaultPrecedingLessonsMap[primaryCourse.slug] || [] : [];
 
   return (
@@ -250,7 +253,7 @@ export function MyLearningDashboard({
               Time Learned
             </p>
             <p className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
-              2h 45m
+              {formatDurationHoursMinutes(totalSecondsLearned)}
             </p>
           </div>
         </div>

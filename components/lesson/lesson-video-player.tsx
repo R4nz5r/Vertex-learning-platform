@@ -141,27 +141,12 @@ export function LessonVideoPlayer({
           });
         }
       }
-
-      // Automatically fire lesson_completed at >= 95% watch depth
-      if (depthPercentage >= 95 && !completedFired.current) {
-        completedFired.current = true;
-        if (courseSlug) {
-          markLessonCompleted(courseSlug, lessonSlug, totalCourseLessons);
-        }
-        posthog.capture("lesson_completed", {
-          lesson_title: lessonTitle,
-          lesson_slug: lessonSlug,
-          course_title: courseTitle,
-          course_slug: courseSlug,
-          completed_via: "watch_depth_95",
-        });
-      }
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [hasValidEmbed, isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug, totalCourseLessons]);
+  }, [hasValidEmbed, isPlaying, duration, startSeconds, lessonTitle, lessonSlug, courseTitle, courseSlug]);
 
   if (!parsedVideo || !parsedVideo.embedUrl) {
     return (

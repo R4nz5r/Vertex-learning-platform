@@ -8,6 +8,7 @@ interface SearchHeaderProps {
   loading?: boolean;
   onQueryChange: (q: string) => void;
   onSubmit: (e: React.FormEvent) => void;
+  onClear?: () => void;
 }
 
 export function SearchHeader({
@@ -17,6 +18,7 @@ export function SearchHeader({
   loading = false,
   onQueryChange,
   onSubmit,
+  onClear,
 }: SearchHeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +86,13 @@ export function SearchHeader({
         {query && (
           <button
             type="button"
-            onClick={() => onQueryChange("")}
+            onClick={() => {
+              if (onClear) {
+                onClear();
+              } else {
+                onQueryChange("");
+              }
+            }}
             className="absolute right-14 p-1 text-neutral-400 hover:text-neutral-600 rounded-full cursor-pointer focus-visible:outline-none"
             aria-label="Clear query"
           >

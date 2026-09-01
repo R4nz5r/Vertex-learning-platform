@@ -26,7 +26,7 @@ export function LessonResultCard({ result, query = "", rank = 1 }: LessonResultC
 
   const handleResultClick = () => {
     posthog.capture("search_result_clicked", {
-      query,
+      query_length: query.length,
       result_type: "lesson",
       lesson_title: result.lessonTitle || result.moduleTitle,
       lesson_slug: result.lessonSlug,

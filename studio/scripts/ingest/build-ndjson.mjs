@@ -24,28 +24,12 @@ function validateAndBuildNdjson() {
   console.log(' Validating & Compiling videos.ndjson')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
-  const docs = []
+  const docsMap = new Map()
   const idSet = new Set()
   let validationErrors = 0
 
-  // 1. Read documents from .cache if populated
-  if (fs.existsSync(cacheDir)) {
-    const files = fs.readdirSync(cacheDir).filter((f) => f.endsWith('.json'))
-    for (const file of files) {
-      try {
-        const filePath = path.join(cacheDir, file)
-        const doc = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
-        docs.push(doc)
-      } catch (err) {
-        console.error(`❌ Failed to parse cache file "${file}": ${err.message}`)
-        validationErrors++
-      }
-    }
-  }
-
-  // 2. Fallback to secondary precomputed file if .cache is empty
-  if (docs.length === 0 && fs.existsSync(secondaryNdjsonPath)) {
-    console.log(`ℹ️  No documents in .cache, loading from scripts/video/videos.ndjson...`)
+  // 1. Read fallback precomputed file if available
+  if (fs.existsSync(secondaryNdjsonPath)) {
     const lines = fs
       .readFileSync(secondaryNdjsonPath, 'utf-8')
       .trim()
@@ -54,12 +38,33 @@ function validateAndBuildNdjson() {
     for (const line of lines) {
       try {
         const doc = JSON.parse(line)
-        docs.push(doc)
+        if (doc?._id) {
+          docsMap.set(doc._id, doc)
+        }
       } catch (e) {
         validationErrors++
       }
     }
   }
+
+  // 2. Read documents from .cache (cache entries take precedence)
+  if (fs.existsSync(cacheDir)) {
+    const files = fs.readdirSync(cacheDir).filter((f) => f.endsWith('.json'))
+    for (const file of files) {
+      try {
+        const filePath = path.join(cacheDir, file)
+        const doc = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+        if (doc?._id) {
+          docsMap.set(doc._id, doc)
+        }
+      } catch (err) {
+        console.error(`❌ Failed to parse cache file "${file}": ${err.message}`)
+        validationErrors++
+      }
+    }
+  }
+
+  const docs = Array.from(docsMap.values())
 
   if (docs.length === 0) {
     console.error('❌ No video documents found to build. Run `npm run ingest:videos` first.')
@@ -102,8 +107,8 @@ function validateAndBuildNdjson() {
       console.error(`${docPrefix} ❌ Missing required videoId.`)
       validationErrors++
     }
-    if (!doc.url || typeof doc.url !== 'string' || !doc.url.startsWith('http')) {
-      console.error(`${docPrefix} ❌ Missing or invalid url. Must be http/https URL.`)
+    if (!doc.url || typeof doc.url !== 'string' || !doc.url.startsWith('https://')) {
+      console.error(`${docPrefix} ❌ Missing or invalid url. Must be an HTTPS URL: "${doc.url}"`)
       validationErrors++
     }
     if (!doc.provider || !['youtube', 'vimeo', 'bunny'].includes(doc.provider)) {

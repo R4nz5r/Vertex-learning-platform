@@ -38,8 +38,8 @@ Implement comprehensive PostHog event tracking across Vertex for all features bu
    - Fire `video_watch_progress` milestone events at 25%, 50%, 75%, and 90% (once per milestone per session).
 2. **Lesson Completion Trigger**:
    - Fire `lesson_completed` client-side automatically when watch depth reaches ≥ 95% of lesson duration. This satisfies the `signals-scout-course-funnel` scout without requiring a backend progress store.
-3. **Search Query Capture**:
-   - Capture the raw query string in `search_performed` (server-side and client-side) and `search_result_clicked` to support zero-result analysis and search funnel tracking (`single-scout-search-query`).
+3. **Search Query Capture & Privacy**:
+   - Capture search analytics with privacy-safe properties (`query_length`, `result_count`, `course_count`, `sort`, `has_results`) across client-side events (`search_submitted`, `search_result_clicked`) and server-side tracking, omitting raw PII or sensitive query text in client payloads.
 4. **Resume Used Event**:
    - Fire `lesson_resume_used` when `startSeconds > 0` on player start or when a user clicks a timestamped video result / resume affordance.
 5. **Distinct ID & PII**:

@@ -139,6 +139,17 @@ export function parseJson3Cues(json3Data) {
   return cues
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    return response
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /**
  * Fetches YouTube video metadata, chapters, and caption cues for a given video ID.
  *
@@ -162,7 +173,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
 
   try {
     const watchUrl = `https://www.youtube.com/watch?v=${videoId}&hl=en`
-    const watchRes = await fetch(watchUrl, {
+    const watchRes = await fetchWithTimeout(watchUrl, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -215,7 +226,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
       videoId,
     }
 
-    const playerRes = await fetch(playerApiUrl, {
+    const playerRes = await fetchWithTimeout(playerApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -256,7 +267,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
         ? `${captionBaseUrl}&fmt=json3`
         : `${captionBaseUrl}?fmt=json3`
 
-      const cueRes = await fetch(json3Url, {
+      const cueRes = await fetchWithTimeout(json3Url, {
         headers: {'User-Agent': userAgent},
       })
 
@@ -276,7 +287,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
     // Fallback: raw XML timedtext if cues empty
     if (cues.length === 0) {
       try {
-        const rawRes = await fetch(captionBaseUrl, {
+        const rawRes = await fetchWithTimeout(captionBaseUrl, {
           headers: {'User-Agent': userAgent},
         })
         if (rawRes.ok) {

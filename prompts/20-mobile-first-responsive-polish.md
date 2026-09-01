@@ -38,7 +38,7 @@ Apply expert responsive, mobile-first design refinements to the **My Learning** 
 
 ## Files to create or change
 
-```
+```text
 components/dashboard/my-learning-dashboard.tsx  [MODIFY] Mobile-first stat cards, adaptive font scales, and responsive filter tab container
 components/cards/my-learning-resume-banner.tsx  [MODIFY] Responsive padding, text scaling, and full-width mobile CTA
 components/cards/my-learning-card.tsx           [MODIFY] Responsive card padding and touch-friendly actions

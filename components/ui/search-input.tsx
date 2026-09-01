@@ -55,7 +55,6 @@ export function SearchInput({
             const query = (e.target as HTMLInputElement).value.trim();
             if (query) {
               posthog.capture("search_submitted", {
-                query: query,
                 query_length: query.length,
               });
               if (onSearch) {

@@ -116,13 +116,16 @@ export function markLessonCompleted(
   totalCourseLessons?: number
 ): CourseProgressState {
   const current = getStoredProgress(courseSlug);
+  const wasAlreadyCompleted = current.completedLessons.includes(lessonSlug);
+  const wasCourseCompleted = Boolean(current.isCourseCompleted);
+
   const completedSet = new Set(current.completedLessons);
   completedSet.add(lessonSlug);
 
   const completedList = Array.from(completedSet);
   const isCourseCompleted =
     Boolean(totalCourseLessons && totalCourseLessons > 0 && completedList.length >= totalCourseLessons) ||
-    Boolean(current.isCourseCompleted);
+    wasCourseCompleted;
 
   const nextState: CourseProgressState = {
     ...current,
@@ -133,14 +136,16 @@ export function markLessonCompleted(
 
   saveProgress(courseSlug, nextState);
 
-  posthog.capture("lesson_completed", {
-    course_slug: courseSlug,
-    lesson_slug: lessonSlug,
-    total_completed: completedList.length,
-    is_course_completed: isCourseCompleted,
-  });
+  if (!wasAlreadyCompleted) {
+    posthog.capture("lesson_completed", {
+      course_slug: courseSlug,
+      lesson_slug: lessonSlug,
+      total_completed: completedList.length,
+      is_course_completed: isCourseCompleted,
+    });
+  }
 
-  if (isCourseCompleted) {
+  if (isCourseCompleted && !wasCourseCompleted) {
     posthog.capture("course_completed", {
       course_slug: courseSlug,
       total_lessons: totalCourseLessons,

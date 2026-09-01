@@ -346,7 +346,8 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
     count($terms[@ in ^.title]) > 0 ||
     count($terms[^.title match @]) > 0 ||
     count($terms[pt::text(^.notes) match @]) > 0 ||
-    count($terms[^.keyPoints[] match @]) > 0
+    count($terms[^.keyPoints[] match @]) > 0 ||
+    count(*[_type == "course" && references(^._id) && count(modules[count($terms[title match @]) > 0]) > 0]) > 0
   )] {
     _id,
     _createdAt,
@@ -388,11 +389,11 @@ export const SEARCH_VIDEOS_GROQ_QUERY = defineQuery(/* groq */ `
   *[_type == "video" && (
     count($terms[^.chapters[].label match @]) > 0 ||
     count($terms[^.chunks[].text match @]) > 0
-  )] {
+  )][0...20] {
     _id,
     url,
     chapters,
-    "chunks": chunks[count($terms[^.text match @]) > 0]
+    "chunks": chunks[count($terms[text match @]) > 0][0...3]
   }
 `)
 

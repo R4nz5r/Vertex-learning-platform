@@ -90,7 +90,7 @@ export function VideoResultCard({ result, query = "", rank = 1 }: VideoResultCar
 
   const handleResultClick = () => {
     posthog.capture("search_result_clicked", {
-      query,
+      query_length: query.length,
       result_type: "video",
       lesson_title: result.lessonTitle,
       lesson_slug: result.lessonSlug,

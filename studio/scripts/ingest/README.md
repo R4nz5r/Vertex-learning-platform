@@ -25,7 +25,7 @@ studio/scripts/ingest/
    - **YouTube**: Fetches `ytInitialData` from watch page for chapter markers; queries InnerTube iOS client context player endpoint to bypass unauthenticated caption blocks; parses `fmt=json3` timedtext cues.
    - **Vimeo / Bunny**: Registered in parser; reported as skipped when API credentials are required.
 4. **Chunking**: Caption cues are merged into ~45-second / ~350-character chunks with decoded entities and non-negative integer `startSeconds`.
-5. **Caching**: Results are saved to `.cache/<docId>.json` so re-runs require zero network traffic.
+5. **Caching**: Results are saved to `.cache/<docId>.json` so re-runs guarantee zero provider fetches for cached videos.
 6. **Validation & Compilation**: `build-ndjson.mjs` validates monotonic timestamps, required fields, and stable `_key`s before creating `videos.ndjson`.
 
 ## Usage & Commands
@@ -57,7 +57,7 @@ npm run ingest:build
 npm run ingest:import
 ```
 
-> **Note**: The import uses `sanity dataset import ... --replace`, which is idempotent and uses the CLI's existing credentials.
+> **Note**: The import uses `sanity dataset import ... --replace`, which is additive for new documents and updates matching `_id`s in-place (reconcile removed lesson documents before import if a strict snapshot sync is desired).
 
 ## Studio Integration
 

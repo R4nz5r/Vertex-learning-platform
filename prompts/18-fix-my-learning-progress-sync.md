@@ -43,7 +43,7 @@ Synchronize the **My Learning** dashboard (`/my-learning`) with the client-side 
 
 ## Files to create or change
 
-```
+```text
 components/cards/my-learning-card.tsx           [MODIFY] Connect to useCourseProgress for live completion and percentage
 components/cards/my-learning-resume-banner.tsx   [NEW] Client-side live resume banner reflecting actual course progress
 components/dashboard/my-learning-dashboard.tsx  [NEW] Client dashboard rendering dynamic stats, resume card, and course cards

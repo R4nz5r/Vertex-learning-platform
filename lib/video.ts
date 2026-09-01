@@ -43,7 +43,7 @@ export function extractBunnyId(url: string): string | null {
   if (!url.includes("mediadelivery.net") && !url.includes("bunnycdn.com")) return null;
   const match = url.match(/(?:embed|play)\/([a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)/i);
   if (match) return `${match[1]}-${match[2]}`;
-  const fileMatch = url.match(/\/([a-zA-Z0-9-]+)(?:\.mp4|\/playlist\.m3u8)?/i);
+  const fileMatch = url.match(/\/([a-zA-Z0-9-]+)(?:\.mp4|\/playlist\.m3u8)?(?:[?#].*)?$/i);
   return fileMatch ? fileMatch[1] : "bunny-video";
 }
 

@@ -41,7 +41,7 @@ Add a dedicated **Completed Courses** metric card to the stats row and an intera
 
 ## Files to create or change
 
-```
+```text
 components/dashboard/my-learning-dashboard.tsx  [MODIFY] Add 4-card stats row (including Completed Courses metric) and interactive filter tabs (All / In Progress / Completed)
 ```
 
