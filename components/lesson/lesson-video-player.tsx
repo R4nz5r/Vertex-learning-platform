@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { getEmbedUrl } from "@/lib/video";
+import { markLessonCompleted } from "@/lib/progress";
 import { Play } from "lucide-react";
 import posthog from "posthog-js";
 
@@ -142,6 +143,9 @@ export function LessonVideoPlayer({
       // Automatically fire lesson_completed at >= 95% watch depth
       if (depthPercentage >= 95 && !completedFired.current) {
         completedFired.current = true;
+        if (courseSlug) {
+          markLessonCompleted(courseSlug, lessonSlug);
+        }
         posthog.capture("lesson_completed", {
           lesson_title: lessonTitle,
           lesson_slug: lessonSlug,
@@ -165,15 +169,23 @@ export function LessonVideoPlayer({
     );
   }
 
+  const getIframeSrc = (embedUrl: string) => {
+    const hashIndex = embedUrl.indexOf("#");
+    if (hashIndex !== -1) {
+      const beforeHash = embedUrl.slice(0, hashIndex);
+      const hash = embedUrl.slice(hashIndex);
+      const sep = beforeHash.includes("?") ? "&" : "?";
+      return `${beforeHash}${sep}autoplay=1${hash}`;
+    }
+    const sep = embedUrl.includes("?") ? "&" : "?";
+    return `${embedUrl}${sep}autoplay=1`;
+  };
+
   return (
     <div className="w-full aspect-video rounded-xl overflow-hidden bg-neutral-950 border border-[#2D2A26] shadow-[0_8px_30px_rgba(0,0,0,0.12)] relative group">
       {isPlaying ? (
         <iframe
-          src={
-            parsedVideo.embedUrl +
-            (parsedVideo.embedUrl.includes("?") ? "&" : "?") +
-            "autoplay=1"
-          }
+          src={getIframeSrc(parsedVideo.embedUrl)}
           title={lessonTitle}
           className="w-full h-full border-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

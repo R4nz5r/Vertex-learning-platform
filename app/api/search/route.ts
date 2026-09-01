@@ -180,7 +180,7 @@ async function executeGroqFallbackSearch(query: string) {
       let matchedTimestamp: number | null = null;
       let matchReason = "";
 
-      // Stage one: match video chapters
+      // Stage one: match video chapters (table of contents)
       if (vDoc?.chapters && vDoc.chapters.length > 0) {
         for (const ch of vDoc.chapters) {
           const chLower = (ch.label || "").toLowerCase();
@@ -190,9 +190,21 @@ async function executeGroqFallbackSearch(query: string) {
             break;
           }
         }
+
+        // Multi-token co-occurrence in chapter label
+        if (matchedTimestamp === null && cleanTokens.length > 1) {
+          for (const ch of vDoc.chapters) {
+            const chLower = (ch.label || "").toLowerCase();
+            if (cleanTokens.every((tok) => chLower.includes(tok.replace(/s$/, "")))) {
+              matchedTimestamp = ch.startSeconds;
+              matchReason = `Video chapter "${ch.label}" teaches this topic directly.`;
+              break;
+            }
+          }
+        }
       }
 
-      // Stage two: match transcript chunks
+      // Stage two: match transcript chunks (fallback)
       if (matchedTimestamp === null && vDoc?.chunks && vDoc.chunks.length > 0) {
         for (const chunk of vDoc.chunks) {
           const chunkLower = (chunk.text || "").toLowerCase();
@@ -200,6 +212,18 @@ async function executeGroqFallbackSearch(query: string) {
             matchedTimestamp = chunk.startSeconds;
             matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
             break;
+          }
+        }
+
+        // Multi-token co-occurrence in transcript chunk
+        if (matchedTimestamp === null && cleanTokens.length > 1) {
+          for (const chunk of vDoc.chunks) {
+            const chunkLower = (chunk.text || "").toLowerCase();
+            if (cleanTokens.every((tok) => chunkLower.includes(tok.replace(/s$/, "")))) {
+              matchedTimestamp = chunk.startSeconds;
+              matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
+              break;
+            }
           }
         }
       }
@@ -341,7 +365,10 @@ export async function POST(req: NextRequest) {
           replyText = structuredResult.object.reply || "";
         }
       } catch (mcpErr) {
-        console.warn("[Search API] MCP tool execution fallback:", mcpErr);
+        const msg = mcpErr instanceof Error ? mcpErr.message : String(mcpErr);
+        if (process.env.NODE_ENV === "development") {
+          console.info("[Search Engine] MCP direct tools offline, using grounded GROQ vector engine:", msg.split("\n")[0]);
+        }
       }
 
       // If MCP returned no hits, try direct structured LLM generation with GROQ fallback enrichment

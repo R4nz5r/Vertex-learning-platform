@@ -51,9 +51,7 @@ export async function fetchInitialContext(): Promise<string> {
     });
 
     if (!response.ok) {
-      console.warn(
-        `[Sanity MCP] initial-context endpoint returned status ${response.status}: ${response.statusText}`
-      );
+      initialContextCache = { content: "", timestamp: now };
       return "";
     }
 
@@ -61,8 +59,8 @@ export async function fetchInitialContext(): Promise<string> {
     const content = typeof data === "string" ? data : JSON.stringify(data);
     initialContextCache = { content, timestamp: now };
     return content;
-  } catch (error) {
-    console.warn("[Sanity MCP] Failed to fetch initial context over HTTP:", error);
+  } catch {
+    initialContextCache = { content: "", timestamp: now };
     return "";
   }
 }

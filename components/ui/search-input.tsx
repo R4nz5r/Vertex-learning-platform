@@ -44,6 +44,7 @@ export function SearchInput({
         className={cn(
           "w-full bg-white border border-neutral-200 outline-none transition-colors duration-150",
           "focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20",
+          "[&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
           isLg
             ? "h-[52px] pl-12 pr-16 text-[15px] text-neutral-700 placeholder:text-neutral-400 rounded-[12px] shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
             : "h-11 pl-10 pr-16 text-body text-neutral-700 placeholder:text-neutral-400 rounded-[var(--radius-md)]",

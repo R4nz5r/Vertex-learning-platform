@@ -68,6 +68,49 @@ export const COURSES_QUERY = defineQuery(/* groq */ `
 `)
 
 /**
+ * Courses with modules and lessons expanded for the My Learning dashboard.
+ */
+export const MY_LEARNING_COURSES_QUERY = defineQuery(/* groq */ `
+  *[_type == "course"] | order(_createdAt desc) {
+    _id,
+    title,
+    "slug": slug.current,
+    summary,
+    coverImage {
+      ${imageFragment}
+    },
+    level,
+    price,
+    popular,
+    studentCount,
+    instructor->{
+      ${instructorFragment}
+    },
+    category->{
+      _id,
+      title,
+      "slug": slug.current
+    },
+    "moduleCount": count(modules),
+    "lessonCount": count(modules[].lessons[]),
+    "totalDuration": math::sum(modules[].lessons[]->duration),
+    modules[] {
+      _key,
+      title,
+      summary,
+      lessons[]->{
+        _id,
+        title,
+        "slug": slug.current,
+        duration,
+        freePreview
+      }
+    }
+  }
+`)
+
+
+/**
  * Single course by slug — full detail with modules expanded.
  * Each module's lessons are dereferenced to show title, slug, duration, etc.
  */

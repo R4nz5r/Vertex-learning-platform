@@ -78,7 +78,7 @@ export function SearchHeader({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search anything..."
-          className="w-full h-12 pl-11 pr-20 bg-white border border-[#E5E0DA] rounded-full text-[14px] text-neutral-800 placeholder:text-neutral-400 shadow-[0_2px_8px_rgba(0,0,0,0.03)] outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all"
+          className="w-full h-12 pl-11 pr-20 bg-white border border-[#E5E0DA] rounded-full text-[14px] text-neutral-800 placeholder:text-neutral-400 shadow-[0_2px_8px_rgba(0,0,0,0.03)] outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
         />
 
         {query && (

@@ -119,13 +119,15 @@ export default async function CourseDetailPage({ params }: PageProps) {
   const modules = course.modules || [];
   const moduleCount = modules.length;
 
-  // Calculate total course duration across all lessons
+  // Calculate total course duration and lesson count across all lessons
   let totalSeconds = 0;
+  let totalLessonsCount = 0;
   let firstLessonSlug: string | null = null;
 
   for (const mod of modules) {
     if (Array.isArray(mod.lessons)) {
       for (const lesson of mod.lessons) {
+        totalLessonsCount++;
         if (lesson?.duration) {
           totalSeconds += lesson.duration;
         }
@@ -191,6 +193,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
           {/* ── Course Hero Section ── */}
           <CourseHero
             title={course.title}
+            courseSlug={slug}
             summary={course.summary}
             coverImage={course.coverImage}
             level={course.level}
@@ -223,9 +226,10 @@ export default async function CourseDetailPage({ params }: PageProps) {
             <ModuleAccordion modules={modules} />
           </section>
 
-          {/* ── Bottom Progress Bar (Presentational) ── */}
+          {/* ── Bottom Progress Bar ── */}
           <BottomProgressBar
-            progressPercentage={0}
+            courseSlug={slug}
+            totalLessonsCount={totalLessonsCount}
             firstLessonSlug={firstLessonSlug}
           />
         </main>

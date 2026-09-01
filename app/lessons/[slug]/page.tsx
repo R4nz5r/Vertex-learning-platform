@@ -223,6 +223,9 @@ export default async function LessonDetailPage({
               prevLesson={prevLesson}
               nextLesson={nextLesson}
               currentLessonTitle={lesson.title}
+              currentLessonSlug={slug}
+              courseSlug={course.slug}
+              allLessonSlugs={flatLessons.map((l) => l.slug)}
             />
           </main>
         </div>

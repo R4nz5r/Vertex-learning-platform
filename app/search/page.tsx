@@ -18,7 +18,7 @@ export default function SearchPage() {
         <Navbar
           links={[
             { label: "Courses", href: "/courses" },
-            { label: "My Learning", href: "#" },
+            { label: "My Learning", href: "/my-learning" },
           ]}
           showActions={true}
         />

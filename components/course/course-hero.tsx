@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { formatDurationHoursMinutes, formatStudentCount } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
+import { useCourseBookmark } from "@/lib/bookmarks";
+import { useCourseStudentCount } from "@/lib/enrollment";
 import posthog from "posthog-js";
 
 interface CourseCoverImage {
@@ -32,6 +34,7 @@ interface CourseCoverImage {
 
 interface CourseHeroProps {
   title: string;
+  courseSlug?: string | null;
   summary?: string | null;
   coverImage?: CourseCoverImage | null;
   level?: string | null;
@@ -90,18 +93,26 @@ function NextjsFallbackCover() {
 
 export function CourseHero({
   title,
+  courseSlug,
   summary,
   coverImage,
   level,
   popular,
-  studentCount,
   totalSeconds,
   moduleCount,
   firstLessonSlug,
 }: CourseHeroProps) {
+  const { studentCount: liveStudents, registerEngagement } = useCourseStudentCount(
+    courseSlug
+  );
   const formattedDuration = formatDurationHoursMinutes(totalSeconds);
-  const formattedStudents = formatStudentCount(studentCount || 0);
+  const formattedStudents = formatStudentCount(liveStudents);
   const continueHref = firstLessonSlug ? `/lessons/${firstLessonSlug}` : "#";
+  const { isBookmarked, toggle: handleBookmarkToggle } = useCourseBookmark(
+    courseSlug,
+    title,
+    level ?? undefined
+  );
 
   // Build Sanity image URL if available
   const imageUrl = coverImage?.asset?.url
@@ -174,7 +185,9 @@ export function CourseHero({
           {/* Student Count */}
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-neutral-400 shrink-0" strokeWidth={1.75} />
-            <span>{formattedStudents} students</span>
+            <span>
+              {formattedStudents} {liveStudents === 1 ? "student" : "students"}
+            </span>
           </div>
         </div>
 
@@ -183,13 +196,14 @@ export function CourseHero({
           {/* Primary CTA */}
           <Link
             href={continueHref}
-            onClick={() =>
+            onClick={() => {
+              registerEngagement();
               posthog.capture("continue_learning_clicked", {
                 course_title: title,
                 course_level: level ?? undefined,
                 first_lesson_slug: firstLessonSlug ?? undefined,
-              })
-            }
+              });
+            }}
             className="inline-flex items-center justify-center gap-2 h-[44px] px-6 rounded-[8px] font-medium text-[14px] text-white bg-gradient-to-b from-[#E76D42] to-[#D9572B] border border-[#D45428] shadow-[0_4px_14px_rgba(225,98,55,0.38)] hover:from-[#DF6236] hover:to-[#CE4E22] hover:shadow-[0_6px_18px_rgba(225,98,55,0.48)] active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer"
           >
             <span>Continue Learning</span>
@@ -199,16 +213,25 @@ export function CourseHero({
           {/* Bookmark Button */}
           <button
             type="button"
-            onClick={() =>
-              posthog.capture("course_bookmarked", {
-                course_title: title,
-                course_level: level ?? undefined,
-              })
-            }
-            className="inline-flex items-center justify-center gap-2 h-[44px] px-5 rounded-[8px] font-medium text-[14px] text-neutral-700 bg-white border border-[#EBE4DC] hover:bg-neutral-50 hover:border-neutral-300 shadow-sm active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer"
+            onClick={handleBookmarkToggle}
+            aria-pressed={isBookmarked}
+            aria-label={isBookmarked ? "Remove course from bookmarks" : "Bookmark course"}
+            className={`inline-flex items-center justify-center gap-2 h-[44px] px-5 rounded-[8px] font-medium text-[14px] shadow-sm active:translate-y-px transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 cursor-pointer ${
+              isBookmarked
+                ? "bg-[#FFF6F0] border border-[#FCDCC9] text-[#C24F1A] hover:bg-[#FFEADB] hover:border-[#F8CBB0]"
+                : "bg-white border border-[#EBE4DC] text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300"
+            }`}
           >
-            <Bookmark className="w-4 h-4 text-neutral-500" strokeWidth={1.75} aria-hidden="true" />
-            <span>Bookmark</span>
+            <Bookmark
+              className={`w-4 h-4 transition-transform duration-150 ${
+                isBookmarked
+                  ? "text-[#C24F1A] fill-[#C24F1A]"
+                  : "text-neutral-500"
+              }`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span>{isBookmarked ? "Bookmarked" : "Bookmark"}</span>
           </button>
         </div>
       </div>
