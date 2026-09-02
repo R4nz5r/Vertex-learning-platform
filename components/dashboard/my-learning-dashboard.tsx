@@ -57,6 +57,16 @@ interface MyLearningDashboardProps {
 
 type FilterType = "all" | "in-progress" | "completed" | "bookmarked";
 
+const emptySubscribe = () => () => {};
+
+export function useIsMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export function MyLearningDashboard({
   allCourses,
   inProgressCourses: propInProgress,
@@ -64,14 +74,13 @@ export function MyLearningDashboard({
   defaultPrecedingLessonsMap = {},
 }: MyLearningDashboardProps) {
   const [filter, setFilter] = useState<FilterType>("all");
-  const [mounted, setMounted] = useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const isMounted = useIsMounted();
 
   const rawBookmarks = useCourseBookmarks();
-  const bookmarkedSlugs = mounted ? rawBookmarks : [];
+  const bookmarkedSlugs = useMemo(
+    () => (isMounted ? rawBookmarks : []),
+    [isMounted, rawBookmarks]
+  );
 
   // Subscribe to progress storage changes for reactive dashboard updates
   const progressVersion = useSyncExternalStore(
@@ -118,7 +127,7 @@ export function MyLearningDashboard({
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
       
       // Before client mounting (SSR and initial hydration pass), use empty progress state to match SSR HTML
-      const prog = mounted
+      const prog = isMounted
         ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [])
         : { completedLessons: [], isCourseCompleted: false, lastWatchedSlug: undefined };
 
@@ -131,7 +140,7 @@ export function MyLearningDashboard({
     });
 
     return map;
-  }, [allAvailableCourses, defaultPrecedingLessonsMap, mounted, progressVersion]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, isMounted, progressVersion]);
 
   // Derive enrolled / active courses from actual learner progress
   const { activeCourses, recommendedCoursesList } = useMemo(() => {
@@ -219,7 +228,7 @@ export function MyLearningDashboard({
             <p className="text-[9.5px] sm:text-[10.5px] lg:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap truncate">
               In Progress
             </p>
-            <p className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
+            <p suppressHydrationWarning className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
               {inProgressCoursesCount} {inProgressCoursesCount === 1 ? "Course" : "Courses"}
             </p>
           </div>
@@ -234,7 +243,7 @@ export function MyLearningDashboard({
             <p className="text-[9.5px] sm:text-[10.5px] lg:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap truncate">
               Completed Courses
             </p>
-            <p className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
+            <p suppressHydrationWarning className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
               {completedCoursesCount} {completedCoursesCount === 1 ? "Course" : "Courses"}
             </p>
           </div>
@@ -249,7 +258,7 @@ export function MyLearningDashboard({
             <p className="text-[9.5px] sm:text-[10.5px] lg:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap truncate">
               Completed Lessons
             </p>
-            <p className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
+            <p suppressHydrationWarning className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
               {totalCompletedLessons} Lessons
             </p>
           </div>
@@ -264,7 +273,7 @@ export function MyLearningDashboard({
             <p className="text-[9.5px] sm:text-[10.5px] lg:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap truncate">
               Time Learned
             </p>
-            <p className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
+            <p suppressHydrationWarning className="text-[16px] sm:text-[19px] lg:text-[21px] font-sans font-bold text-neutral-900 tracking-tight leading-tight whitespace-nowrap">
               {formatDurationHoursMinutes(totalSecondsLearned)}
             </p>
           </div>
