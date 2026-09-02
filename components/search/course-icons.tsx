@@ -5,7 +5,7 @@ import { urlFor } from "@/sanity/lib/image";
 interface CourseIconProps {
   courseTitle?: string;
   courseSlug?: string;
-  coverImage?: unknown;
+  coverImage?: Parameters<typeof urlFor>[0] | null;
   className?: string;
   size?: number;
 }
