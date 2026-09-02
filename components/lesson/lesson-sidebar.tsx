@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { formatDurationHoursMinutes, formatDurationMinutesSeconds } from "@/lib/format";
+import { useCourseProgress } from "@/lib/progress";
 import posthog from "posthog-js";
 
 export interface SidebarLesson {
@@ -49,8 +50,38 @@ export function LessonSidebar({
   currentModuleIndex,
 }: LessonSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const modules = course.modules || [];
+  const modules = React.useMemo(() => course.modules || [], [course.modules]);
   const totalModules = modules.length;
+
+  // Flatten all course lessons
+  const { allLessons, defaultPrecedingSlugs } = React.useMemo(() => {
+    const lessons: SidebarLesson[] = [];
+    const preceding: string[] = [];
+
+    modules.forEach((mod) => {
+      (mod.lessons || []).forEach((les) => {
+        lessons.push(les);
+      });
+    });
+
+    return { allLessons: lessons, defaultPrecedingSlugs: preceding };
+  }, [modules]);
+
+  const progress = useCourseProgress(course.slug, defaultPrecedingSlugs);
+  const completedSet = new Set(progress.completedLessons);
+
+  const totalLessonsCount = allLessons.length;
+  const completedLessonsCount = completedSet.size;
+
+  const isCourseFullyCompleted =
+    progress.isCourseCompleted ||
+    (totalLessonsCount > 0 && completedLessonsCount >= totalLessonsCount);
+
+  const progressPercentage = isCourseFullyCompleted
+    ? 100
+    : totalLessonsCount > 0
+    ? Math.min(99, Math.round((completedLessonsCount / totalLessonsCount) * 100))
+    : 0;
 
   // Track expanded modules. Open the active module by default.
   const [expandedModules, setExpandedModules] = useState<Set<number>>(() => {
@@ -68,12 +99,6 @@ export function LessonSidebar({
       return next;
     });
   };
-
-  // Calculate approximate completed progress (modules preceding current module)
-  const completedModulesCount = Math.max(0, currentModuleIndex);
-  const progressPercentage = totalModules > 0
-    ? Math.min(100, Math.round(((completedModulesCount + 0.35) / totalModules) * 100))
-    : 0;
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#FAF7F2]">
@@ -139,11 +164,14 @@ export function LessonSidebar({
         <div className="space-y-2 pt-2">
           {modules.map((mod, modIdx) => {
             const isCurrentModule = modIdx === currentModuleIndex;
-            const isCompleted = modIdx < currentModuleIndex;
+            const modLessons = mod.lessons || [];
+            const isCompleted =
+              isCourseFullyCompleted ||
+              (modLessons.length > 0 && modLessons.every((l) => completedSet.has(l.slug)));
             const isExpanded = expandedModules.has(modIdx);
             const moduleNumber = modIdx + 1;
 
-            const modSeconds = (mod.lessons || []).reduce(
+            const modSeconds = modLessons.reduce(
               (acc, l) => acc + (l.duration || 0),
               0
             );
@@ -199,10 +227,11 @@ export function LessonSidebar({
                 </button>
 
                 {/* Sub-lessons list inside expanded module */}
-                {isExpanded && mod.lessons && mod.lessons.length > 0 && (
+                {isExpanded && modLessons.length > 0 && (
                   <div className="pl-6 pr-2 py-2 space-y-1">
-                    {mod.lessons.map((les, lesIdx) => {
+                    {modLessons.map((les, lesIdx) => {
                       const isCurrentLesson = les.slug === currentLessonSlug;
+                      const isLessonCompleted = isCourseFullyCompleted || completedSet.has(les.slug);
                       const lesDuration = formatDurationMinutesSeconds(
                         les.duration || 0
                       );
@@ -227,8 +256,10 @@ export function LessonSidebar({
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            {/* Bullet Dot */}
-                            {isCurrentLesson ? (
+                            {/* Bullet Dot / Checkmark */}
+                            {isLessonCompleted ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary-600 shrink-0 ml-0.5" />
+                            ) : isCurrentLesson ? (
                               <div className="w-2 h-2 rounded-full bg-primary-600 shrink-0 ml-0.5" />
                             ) : (
                               <div className="w-2 h-2 rounded-full border border-neutral-400 shrink-0 ml-0.5" />
@@ -239,6 +270,8 @@ export function LessonSidebar({
                                 className={`text-[13px] block truncate transition-colors ${
                                   isCurrentLesson
                                     ? "font-semibold text-neutral-900"
+                                    : isLessonCompleted
+                                    ? "font-medium text-neutral-800"
                                     : "font-normal text-neutral-700 group-hover:text-neutral-900"
                                 }`}
                               >

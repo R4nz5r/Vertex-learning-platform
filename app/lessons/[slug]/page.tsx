@@ -92,6 +92,7 @@ export default async function LessonDetailPage({
 
     for (let lIdx = 0; lIdx < modLessons.length; lIdx++) {
       const l = modLessons[lIdx];
+      if (!l?.slug) continue; // skip null or slugless lessons
       const navItem: NavLesson = {
         title: l.title,
         slug: l.slug,
@@ -216,6 +217,7 @@ export default async function LessonDetailPage({
               moduleTitle={moduleTitle}
               lessonNumberLabel={lessonNumberLabel}
               startSeconds={startSeconds}
+              totalCourseLessons={flatLessons.length}
             />
 
             {/* ── Bottom Previous / Next Lesson Navigation Bar ── */}
@@ -223,6 +225,9 @@ export default async function LessonDetailPage({
               prevLesson={prevLesson}
               nextLesson={nextLesson}
               currentLessonTitle={lesson.title}
+              currentLessonSlug={slug}
+              courseSlug={course.slug}
+              allLessonSlugs={flatLessons.map((l) => l.slug)}
             />
           </main>
         </div>

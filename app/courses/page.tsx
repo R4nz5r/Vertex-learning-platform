@@ -7,6 +7,7 @@ import { CourseCard } from "@/components/cards/course-card";
 import { getCourses } from "@/sanity/lib/fetchers";
 import { formatDurationHoursMinutes } from "@/lib/format";
 import { urlFor } from "@/sanity/lib/image";
+import { CatalogAnalytics } from "@/components/analytics/catalog-analytics";
 
 export const metadata: Metadata = {
   title: "All Courses | Vertex",
@@ -197,6 +198,7 @@ export default async function AllCoursesPage() {
         backgroundAttachment: "fixed",
       }}
     >
+      <CatalogAnalytics totalCourses={courses.length} />
       {/* ── Center Framed Website Container (1440px) ── */}
       <div className="max-w-[1440px] w-full mx-auto min-h-screen bg-[#FAF7F2] border-x border-[#EBE4DC] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.02)]">
         {/* ── Top Navigation Bar ── */}

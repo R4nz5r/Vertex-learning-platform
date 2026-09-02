@@ -12,6 +12,8 @@ interface EnrichedLessonDoc {
   duration?: number | null;
   thumbnail?: unknown;
   keyPoints?: string[] | null;
+  introNote?: string | null;
+  notesText?: string | null;
   freePreview?: boolean | null;
   videoUrl?: string | null;
   course?: {
@@ -120,11 +122,12 @@ export async function groundSearchHits(
       courseTitle: doc.course?.title || "Vertex Course",
       courseSlug: doc.course?.slug || "courses",
       courseCoverImage: doc.course?.coverImage || null,
+      thumbnail: doc.thumbnail || null,
       moduleIndex,
       lessonIndex,
       label,
       moduleTitle,
-      summary: moduleSummary || doc.title,
+      summary: doc.introNote || doc.keyPoints?.[0] || moduleSummary || doc.title,
       duration: doc.duration ?? 0,
       keyPoints: Array.isArray(doc.keyPoints) ? doc.keyPoints : [],
       href,

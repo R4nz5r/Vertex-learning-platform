@@ -37,6 +37,7 @@ export const SearchResultSchema = z.object({
   courseTitle: z.string(),
   courseSlug: z.string(),
   courseCoverImage: z.any().nullable().optional(),
+  thumbnail: z.any().nullable().optional(),
   moduleIndex: z.number(),
   lessonIndex: z.number(),
   label: z.string(), // e.g. "Lesson 5.1"

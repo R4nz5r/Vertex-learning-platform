@@ -36,6 +36,39 @@ export function extractVimeoId(url: string): string | null {
 }
 
 /**
+ * Extracts Bunny Stream video ID / library info from Bunny URLs.
+ */
+export function extractBunnyId(url: string): string | null {
+  if (!url || typeof url !== "string") return null;
+  if (!url.includes("mediadelivery.net") && !url.includes("bunnycdn.com")) return null;
+  const match = url.match(/(?:embed|play)\/([a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)/i);
+  if (match) return `${match[1]}-${match[2]}`;
+  const fileMatch = url.match(/\/([a-zA-Z0-9-]+)(?:\.mp4|\/playlist\.m3u8)?(?:[?#].*)?$/i);
+  return fileMatch ? fileMatch[1] : "bunny-video";
+}
+
+/**
+ * Derives a stable lookup key for a video URL across different URL formats
+ * (e.g. youtu.be/ID vs youtube.com/watch?v=ID vs youtube.com/embed/ID).
+ */
+export function getVideoLookupKey(videoUrl: string | undefined | null): string | null {
+  if (!videoUrl) return null;
+  const trimmed = videoUrl.trim();
+  if (!trimmed) return null;
+
+  const ytId = extractYouTubeId(trimmed);
+  if (ytId) return `yt:${ytId}`;
+
+  const vimeoId = extractVimeoId(trimmed);
+  if (vimeoId) return `vimeo:${vimeoId}`;
+
+  const bunnyId = extractBunnyId(trimmed);
+  if (bunnyId) return `bunny:${bunnyId}`;
+
+  return trimmed.replace(/\/$/, "").toLowerCase();
+}
+
+/**
  * Transforms a video URL (YouTube, Vimeo, Bunny, or generic) into a clean,
  * embeddable iframe URL with support for an optional start timestamp.
  */

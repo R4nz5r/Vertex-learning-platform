@@ -8,9 +8,21 @@ import {
   INSTRUCTOR_BY_SLUG_QUERY,
   INSTRUCTORS_QUERY,
   LESSON_BY_SLUG_QUERY,
+  MY_LEARNING_COURSES_QUERY,
 } from './queries'
 
 // ─── Courses ────────────────────────────────────────────────────
+
+/**
+ * Fetch all courses with modules and lessons expanded for My Learning dashboard.
+ */
+export async function getMyLearningCourses() {
+  return sanityFetch({
+    query: MY_LEARNING_COURSES_QUERY,
+    tags: ['course', 'instructor', 'category', 'lesson'],
+  })
+}
+
 
 /**
  * Fetch all courses for the catalog listing.

@@ -1,4 +1,4 @@
-import {BookIcon, PlayIcon, TagIcon, UserIcon} from '@sanity/icons'
+import {BookIcon, PlayIcon, TagIcon, UserIcon, VideoIcon} from '@sanity/icons'
 import type {StructureResolver} from 'sanity/structure'
 
 export const structure: StructureResolver = (S) =>
@@ -22,4 +22,10 @@ export const structure: StructureResolver = (S) =>
         .title('Categories')
         .icon(TagIcon)
         .child(S.documentTypeList('category').title('Categories')),
+      S.divider(),
+      S.listItem()
+        .title('Videos (Internal)')
+        .icon(VideoIcon)
+        .child(S.documentTypeList('video').title('Videos (Ingested)')),
     ])
+

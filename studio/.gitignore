@@ -3,3 +3,7 @@ node_modules
 dist
 .env*
 !.env.example
+scripts/ingest/.cache
+scripts/ingest/videos.ndjson
+schema.json
+

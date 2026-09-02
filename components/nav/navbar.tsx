@@ -17,8 +17,8 @@ export interface NavbarProps {
 }
 
 const defaultLinks: NavLink[] = [
-  { label: "Courses", href: "#", active: true },
-  { label: "My Learning", href: "#" },
+  { label: "Courses", href: "/courses" },
+  { label: "My Learning", href: "/my-learning" },
 ];
 
 export function Navbar({
@@ -42,7 +42,7 @@ export function Navbar({
         <ul className="flex items-center gap-6 list-none m-0 p-0">
           {links.map((link) => (
             <li key={link.label}>
-              <a
+              <Link
                 href={link.href}
                 aria-current={link.active ? "page" : undefined}
                 className={cn(
@@ -52,7 +52,7 @@ export function Navbar({
                 )}
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

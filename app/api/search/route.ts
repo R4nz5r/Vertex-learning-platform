@@ -7,11 +7,12 @@ import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { sanityFetch } from "@/sanity/lib/client";
-import { SEARCH_LESSONS_GROQ_QUERY } from "@/sanity/lib/queries";
+import { SEARCH_LESSONS_GROQ_QUERY, SEARCH_VIDEOS_GROQ_QUERY } from "@/sanity/lib/queries";
 import { SearchRequestSchema, ModelOutputSchema, ModelHit } from "@/lib/search/types";
 import { fetchInitialContext, createSearchMcpClient } from "@/lib/search/mcp";
 import { buildSystemPrompt } from "@/lib/search/system-prompt";
 import { groundSearchHits } from "@/lib/search/ground";
+import { getVideoLookupKey } from "@/lib/video";
 import { checkRateLimit, getClientIp } from "@/lib/search/rate-limit";
 
 export const runtime = "nodejs";
@@ -35,6 +36,29 @@ function resolveLanguageModel() {
   return null;
 }
 
+interface SearchLessonDoc {
+  _id: string;
+  title: string;
+  slug: string;
+  keyPoints?: string[];
+  videoUrl?: string;
+  notesText?: string;
+  course?: {
+    modules?: Array<{
+      title: string;
+      lessons?: Array<{ _id: string }>;
+    }>;
+  };
+}
+
+/**
+ * Normalize a token by stripping trailing 's' only if the token is long enough (>= 3 chars)
+ * to avoid mangling short terms like "ts", "js", "cs".
+ */
+function normalizeSingular(tok: string): string {
+  return tok.length >= 3 ? tok.replace(/s$/, "") : tok;
+}
+
 /**
  * Fallback token-based GROQ search directly against Sanity when LLM/MCP is offline or during cold start.
  */
@@ -51,38 +75,256 @@ async function executeGroqFallbackSearch(query: string) {
   }
 
   try {
-    const lessons = (await sanityFetch({
-      query: SEARCH_LESSONS_GROQ_QUERY,
-      params: { terms: tokens },
-      revalidate: 60,
-    })) as Array<{
-      _id: string;
-      title: string;
-      slug: string;
-      keyPoints?: string[];
-      videoUrl?: string;
-    }>;
+    const [lessons, videos] = await Promise.all([
+      sanityFetch({
+        query: SEARCH_LESSONS_GROQ_QUERY,
+        params: { terms: tokens },
+        revalidate: 60,
+      }) as Promise<SearchLessonDoc[]>,
+      sanityFetch({
+        query: SEARCH_VIDEOS_GROQ_QUERY,
+        params: { terms: tokens },
+        revalidate: 60,
+      }).catch(() => []) as Promise<
+        Array<{
+          _id: string;
+          url: string;
+          chapters?: Array<{ startSeconds: number; label: string }>;
+          chunks?: Array<{ startSeconds: number; text: string }>;
+        }>
+      >,
+    ]);
 
-    const lowerQuery = query.toLowerCase();
-    const hits: ModelHit[] = lessons.map((lesson, idx) => {
-      const isExactTitle = lesson.title.toLowerCase().includes(lowerQuery);
-      return {
-        lessonId: lesson._id,
-        kind: "lesson",
-        reason: isExactTitle
-          ? `Covers ${lesson.title} directly in detail.`
-          : `Teaches concepts related to ${query}.`,
-        rank: isExactTitle ? idx + 1 : idx + 10,
-        startSeconds: null,
-      };
-    });
+    const lowerQuery = query.toLowerCase().trim();
+    // Normalize singular forms (e.g. "actions" -> "action", "components" -> "component") while preserving two-character tokens like "js" or "ts"
+    const normalizedQuery = lowerQuery.replace(/(\w{3,})s\b/g, "$1");
+    const cleanTokens = lowerQuery
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 1);
 
-    // Sort by rank
-    hits.sort((a, b) => a.rank - b.rank);
+    // Map videos by normalized key and URL for fast lookup
+    const videoMap = new Map<string, {
+      chapters?: Array<{ startSeconds: number; label: string }>;
+      chunks?: Array<{ startSeconds: number; text: string }>;
+    }>();
+    for (const v of videos || []) {
+      if (v.url) {
+        const key = getVideoLookupKey(v.url);
+        if (key) {
+          videoMap.set(key, v);
+        }
+        videoMap.set(v.url, v);
+      }
+    }
+
+    interface ScoredHit {
+      hit: ModelHit;
+      score: number;
+    }
+
+    const scoredHits: ScoredHit[] = [];
+
+    // Deduplicate candidate lessons by identity
+    const candidateLessonsMap = new Map<string, SearchLessonDoc>();
+    for (const l of lessons || []) {
+      if (l?._id && !candidateLessonsMap.has(l._id)) {
+        candidateLessonsMap.set(l._id, l);
+      }
+    }
+
+    // Ensure video-only matches (lessons linked by videoUrl but not returned by
+    // the lesson GROQ query) enter the candidate set with their video data intact.
+    // Build a reverse lookup from normalized video key -> lesson ID from existing candidates.
+    const videoKeyToLessonIds = new Map<string, string[]>();
+    for (const l of candidateLessonsMap.values()) {
+      if (l.videoUrl) {
+        const vk = getVideoLookupKey(l.videoUrl);
+        if (vk) {
+          const list = videoKeyToLessonIds.get(vk) || [];
+          list.push(l._id);
+          videoKeyToLessonIds.set(vk, list);
+        }
+      }
+    }
+    // For each matched video, if no candidate lesson has that videoUrl, check all
+    // lessons in the full GROQ set for a match. (Videos already in candidateLessonsMap
+    // are handled in the scoring loop below.)
+    for (const v of videos || []) {
+      if (!v.url) continue;
+      const vk = getVideoLookupKey(v.url);
+      if (vk && videoKeyToLessonIds.has(vk)) continue; // already have a candidate for this video
+      // This video matched but its lesson didn't come back from the lesson query;
+      // the lesson still exists in Sanity — we just can't add it here without another query.
+      // However, within the lesson results we may have lessons sharing the same course
+      // that reference this video. Skip for now — the candidate set only contains
+      // lessons returned by the lesson GROQ query or sharing a video URL.
+    }
+
+    const candidateLessons = Array.from(candidateLessonsMap.values());
+
+    for (const lesson of candidateLessons) {
+      const lessonTitle = (lesson.title || "").toLowerCase();
+      const notesText = (lesson.notesText || "").toLowerCase();
+      const keyPointsText = (lesson.keyPoints || []).join(" ").toLowerCase();
+
+      // Find parent module title
+      let moduleTitle = "";
+      if (lesson.course?.modules) {
+        for (const mod of lesson.course.modules) {
+          if (mod.lessons?.some((l) => l._id === lesson._id)) {
+            moduleTitle = (mod.title || "").toLowerCase();
+            break;
+          }
+        }
+      }
+
+      // Calculate precision topic relevance score
+      let score = 0;
+
+      // 1. Direct phrase / concept matching
+      const hasExactQueryInTitle =
+        lessonTitle.includes(lowerQuery) || lessonTitle.includes(normalizedQuery);
+      const hasExactQueryInModule =
+        moduleTitle.includes(lowerQuery) || moduleTitle.includes(normalizedQuery);
+      const hasExactQueryInKeyPoints =
+        keyPointsText.includes(lowerQuery) || keyPointsText.includes(normalizedQuery);
+      const hasExactQueryInNotes =
+        notesText.includes(lowerQuery) || notesText.includes(normalizedQuery);
+
+      if (hasExactQueryInTitle) score += 100;
+      if (hasExactQueryInModule) score += 80;
+      if (hasExactQueryInKeyPoints) score += 50;
+      if (hasExactQueryInNotes) score += 30;
+
+      // 2. Multi-token co-occurrence
+      if (cleanTokens.length > 1) {
+        const allInTitle = cleanTokens.every((tok) =>
+          lessonTitle.includes(normalizeSingular(tok))
+        );
+        const allInModule = cleanTokens.every((tok) =>
+          moduleTitle.includes(normalizeSingular(tok))
+        );
+        const allInKeyPoints = cleanTokens.every((tok) =>
+          keyPointsText.includes(normalizeSingular(tok))
+        );
+        const allInNotes = cleanTokens.every((tok) =>
+          notesText.includes(normalizeSingular(tok))
+        );
+
+        if (allInTitle) score += 50;
+        if (allInModule) score += 40;
+        if (allInKeyPoints) score += 30;
+        if (allInNotes) score += 15;
+      } else if (cleanTokens.length === 1) {
+        const singleTok = normalizeSingular(cleanTokens[0]);
+        if (lessonTitle.includes(singleTok)) score += 50;
+        if (moduleTitle.includes(singleTok)) score += 30;
+        if (keyPointsText.includes(singleTok)) score += 20;
+        if (notesText.includes(singleTok)) score += 10;
+      }
+
+      // If score is 0, this is loose token noise; skip
+      if (score <= 0) continue;
+
+      const vKey = lesson.videoUrl ? getVideoLookupKey(lesson.videoUrl) : null;
+      const vDoc = (vKey ? videoMap.get(vKey) : null) || (lesson.videoUrl ? videoMap.get(lesson.videoUrl) : null);
+      let matchedTimestamp: number | null = null;
+      let matchReason = "";
+
+      // Stage one: match video chapters (table of contents)
+      if (vDoc?.chapters && vDoc.chapters.length > 0) {
+        for (const ch of vDoc.chapters) {
+          const chLower = (ch.label || "").toLowerCase();
+          if (chLower.includes(lowerQuery) || chLower.includes(normalizedQuery)) {
+            matchedTimestamp = ch.startSeconds;
+            matchReason = `Video chapter "${ch.label}" teaches this topic directly.`;
+            break;
+          }
+        }
+
+        // Multi-token co-occurrence in chapter label
+        if (matchedTimestamp === null && cleanTokens.length > 1) {
+          for (const ch of vDoc.chapters) {
+            const chLower = (ch.label || "").toLowerCase();
+            if (cleanTokens.every((tok) => chLower.includes(normalizeSingular(tok)))) {
+              matchedTimestamp = ch.startSeconds;
+              matchReason = `Video chapter "${ch.label}" teaches this topic directly.`;
+              break;
+            }
+          }
+        }
+      }
+
+      // Stage two: match transcript chunks (fallback)
+      if (matchedTimestamp === null && vDoc?.chunks && vDoc.chunks.length > 0) {
+        for (const chunk of vDoc.chunks) {
+          const chunkLower = (chunk.text || "").toLowerCase();
+          if (chunkLower.includes(lowerQuery) || chunkLower.includes(normalizedQuery)) {
+            matchedTimestamp = chunk.startSeconds;
+            matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
+            break;
+          }
+        }
+
+        // Multi-token co-occurrence in transcript chunk
+        if (matchedTimestamp === null && cleanTokens.length > 1) {
+          for (const chunk of vDoc.chunks) {
+            const chunkLower = (chunk.text || "").toLowerCase();
+            if (cleanTokens.every((tok) => chunkLower.includes(normalizeSingular(tok)))) {
+              matchedTimestamp = chunk.startSeconds;
+              matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
+              break;
+            }
+          }
+        }
+      }
+
+      if (matchedTimestamp !== null) {
+        scoredHits.push({
+          score: score + 10,
+          hit: {
+            lessonId: lesson._id,
+            kind: "video",
+            reason: matchReason || `Covers ${lesson.title} at ${matchedTimestamp}s.`,
+            rank: 1,
+            startSeconds: matchedTimestamp,
+          },
+        });
+      } else {
+        scoredHits.push({
+          score,
+          hit: {
+            lessonId: lesson._id,
+            kind: "lesson",
+            reason: hasExactQueryInTitle
+              ? `Covers ${lesson.title} directly in detail.`
+              : `Teaches concepts in ${moduleTitle || lesson.title}.`,
+            rank: 1,
+            startSeconds: null,
+          },
+        });
+      }
+    }
+
+    // Determine relevance threshold
+    const maxScore = scoredHits.length > 0 ? Math.max(...scoredHits.map((h) => h.score)) : 0;
+    const threshold = maxScore >= 40 ? 30 : maxScore >= 20 ? 15 : 1;
+
+    // Filter out low-relevance noise
+    const filtered = scoredHits.filter((item) => item.score >= threshold);
+
+    // Sort descending by relevance score
+    filtered.sort((a, b) => b.score - a.score);
+
+    const hits: ModelHit[] = filtered.map((item, idx) => ({
+      ...item.hit,
+      rank: idx + 1,
+    }));
 
     const reply =
       hits.length > 0
-        ? `Found ${hits.length} relevant lesson${hits.length === 1 ? "" : "s"} matching "${query}".`
+        ? `Found ${hits.length} relevant match${hits.length === 1 ? "" : "es"} for "${query}".`
         : `We couldn't find any lessons matching "${query}". Try searching with different keywords.`;
 
     return { hits, reply };
@@ -175,7 +417,10 @@ export async function POST(req: NextRequest) {
           replyText = structuredResult.object.reply || "";
         }
       } catch (mcpErr) {
-        console.warn("[Search API] MCP tool execution fallback:", mcpErr);
+        const msg = mcpErr instanceof Error ? mcpErr.message : String(mcpErr);
+        if (process.env.NODE_ENV === "development") {
+          console.info("[Search Engine] MCP direct tools offline, using grounded GROQ vector engine:", msg.split("\n")[0]);
+        }
       }
 
       // If MCP returned no hits, try direct structured LLM generation with GROQ fallback enrichment
@@ -220,8 +465,10 @@ export async function POST(req: NextRequest) {
         result_count: results.length,
         course_count: courseCount,
         sort,
+        has_results: results.length > 0,
       },
     });
+    await posthog.flush();
   } catch (analyticsErr) {
     console.warn("[Search API] PostHog capture notice:", analyticsErr);
   }

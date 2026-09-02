@@ -68,6 +68,49 @@ export const COURSES_QUERY = defineQuery(/* groq */ `
 `)
 
 /**
+ * Courses with modules and lessons expanded for the My Learning dashboard.
+ */
+export const MY_LEARNING_COURSES_QUERY = defineQuery(/* groq */ `
+  *[_type == "course"] | order(_createdAt desc) {
+    _id,
+    title,
+    "slug": slug.current,
+    summary,
+    coverImage {
+      ${imageFragment}
+    },
+    level,
+    price,
+    popular,
+    studentCount,
+    instructor->{
+      ${instructorFragment}
+    },
+    category->{
+      _id,
+      title,
+      "slug": slug.current
+    },
+    "moduleCount": count(modules),
+    "lessonCount": count(modules[].lessons[]),
+    "totalDuration": math::sum(modules[].lessons[]->duration),
+    modules[] {
+      _key,
+      title,
+      summary,
+      lessons[]->{
+        _id,
+        title,
+        "slug": slug.current,
+        duration,
+        freePreview
+      }
+    }
+  }
+`)
+
+
+/**
  * Single course by slug — full detail with modules expanded.
  * Each module's lessons are dereferenced to show title, slug, duration, etc.
  */
@@ -272,6 +315,8 @@ export const LESSONS_BY_IDS_QUERY = defineQuery(/* groq */ `
     keyPoints,
     freePreview,
     videoUrl,
+    "introNote": notes[0].children[0].text,
+    "notesText": pt::text(notes),
     "course": *[_type == "course" && references(^._id)][0] {
       _id,
       title,
@@ -301,7 +346,8 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
     count($terms[@ in ^.title]) > 0 ||
     count($terms[^.title match @]) > 0 ||
     count($terms[pt::text(^.notes) match @]) > 0 ||
-    count($terms[^.keyPoints[] match @]) > 0
+    count($terms[^.keyPoints[] match @]) > 0 ||
+    count(*[_type == "course" && references(^._id) && count(modules[count($terms[title match @]) > 0]) > 0]) > 0
   )] {
     _id,
     _createdAt,
@@ -314,6 +360,7 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
     keyPoints,
     freePreview,
     videoUrl,
+    "notesText": pt::text(notes),
     "course": *[_type == "course" && references(^._id)][0] {
       _id,
       title,
@@ -332,6 +379,21 @@ export const SEARCH_LESSONS_GROQ_QUERY = defineQuery(/* groq */ `
         }
       }
     }
+  }
+`)
+
+/**
+ * GROQ query to find video documents matching chapter labels or transcript text chunks.
+ */
+export const SEARCH_VIDEOS_GROQ_QUERY = defineQuery(/* groq */ `
+  *[_type == "video" && (
+    count($terms[^.chapters[].label match @]) > 0 ||
+    count($terms[^.chunks[].text match @]) > 0
+  )][0...20] {
+    _id,
+    url,
+    chapters,
+    "chunks": chunks[count($terms[text match @]) > 0][0...3]
   }
 `)
 

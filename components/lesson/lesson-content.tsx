@@ -29,10 +29,14 @@ function GithubIcon({ className = "w-5 h-5" }: { className?: string }) {
     </svg>
   );
 }
+
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { LessonVideoPlayer } from "./lesson-video-player";
 import { PortableTextRenderer } from "./portable-text-renderer";
 import { formatDurationHoursMinutes, formatStudentCount } from "@/lib/format";
+import { useCourseProgress, toggleLessonCompleted } from "@/lib/progress";
+import { useLessonBookmark } from "@/lib/bookmarks";
+import { useCourseStudentCount } from "@/lib/enrollment";
 import posthog from "posthog-js";
 
 export interface LessonResource {
@@ -69,6 +73,7 @@ interface LessonContentProps {
   moduleTitle: string;
   lessonNumberLabel: string; // e.g. "LESSON 5.1"
   startSeconds?: number;
+  totalCourseLessons?: number;
 }
 
 export function LessonContent({
@@ -77,22 +82,25 @@ export function LessonContent({
   moduleTitle,
   lessonNumberLabel,
   startSeconds,
+  totalCourseLessons,
 }: LessonContentProps) {
   const [activeTab, setActiveTab] = useState<"content" | "notes">("content");
-  const [bookmarked, setBookmarked] = useState(false);
+  const { isBookmarked: bookmarked, toggle: handleBookmarkToggle } = useLessonBookmark(
+    course.slug,
+    lesson.slug,
+    lesson.title
+  );
+
+  const { studentCount: liveStudents } = useCourseStudentCount(course.slug);
+  const progress = useCourseProgress(course.slug);
+  const isCompleted = progress.isCourseCompleted || progress.completedLessons.includes(lesson.slug);
 
   const formattedDuration = formatDurationHoursMinutes(lesson.duration || 0);
-  const studentCount = lesson.studentCount || course.studentCount || 3426;
-  const formattedStudentCount = formatStudentCount(studentCount);
+  const formattedStudentCount = formatStudentCount(liveStudents);
   const level = course.level || "Intermediate";
 
-  const handleBookmarkToggle = () => {
-    setBookmarked(!bookmarked);
-    posthog.capture("lesson_bookmark_toggled", {
-      lesson_title: lesson.title,
-      lesson_slug: lesson.slug,
-      bookmarked: !bookmarked,
-    });
+  const handleCompleteToggle = () => {
+    toggleLessonCompleted(course.slug, lesson.slug, totalCourseLessons);
   };
 
   const getResourceIcon = (type?: string, title?: string) => {
@@ -141,26 +149,44 @@ export function LessonContent({
           </span>
         </div>
 
-        {/* Title & Bookmark Button */}
+        {/* Title & Actions Button */}
         <div className="flex items-start justify-between gap-4 mb-3">
           <h1 className="font-display text-3xl sm:text-4xl lg:text-[40px] font-bold text-neutral-900 tracking-tight leading-[1.15]">
             {lesson.title}
           </h1>
 
-          <button
-            type="button"
-            onClick={handleBookmarkToggle}
-            aria-label={bookmarked ? "Remove bookmark" : "Bookmark lesson"}
-            className={`p-2.5 rounded-xl border transition-all cursor-pointer shrink-0 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-              bookmarked
-                ? "bg-primary-50 border-primary-300 text-primary-600"
-                : "bg-white border-[#EBE4DC] text-neutral-500 hover:text-neutral-900 hover:border-neutral-300"
-            }`}
-          >
-            <Bookmark
-              className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`}
-            />
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleCompleteToggle}
+              aria-label={isCompleted ? "Mark lesson as incomplete" : "Mark lesson as complete"}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[13px] font-semibold transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                isCompleted
+                  ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100/70"
+                  : "bg-white border-[#EBE4DC] text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300"
+              }`}
+            >
+              <CheckCircle2
+                className={`w-4 h-4 ${isCompleted ? "text-green-600 fill-green-100" : "text-neutral-400"}`}
+              />
+              <span>{isCompleted ? "Completed" : "Mark Complete"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBookmarkToggle}
+              aria-label={bookmarked ? "Remove bookmark" : "Bookmark lesson"}
+              className={`p-2.5 rounded-xl border transition-all cursor-pointer shrink-0 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                bookmarked
+                  ? "bg-primary-50 border-primary-300 text-primary-600"
+                  : "bg-white border-[#EBE4DC] text-neutral-500 hover:text-neutral-900 hover:border-neutral-300"
+              }`}
+            >
+              <Bookmark
+                className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Short Summary Description */}
@@ -181,7 +207,9 @@ export function LessonContent({
           </div>
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-neutral-400" />
-            <span>{formattedStudentCount} students</span>
+            <span>
+              {formattedStudentCount} {liveStudents === 1 ? "student" : "students"}
+            </span>
           </div>
         </div>
       </div>
@@ -192,7 +220,11 @@ export function LessonContent({
           videoUrl={lesson.videoUrl}
           lessonTitle={lesson.title}
           lessonSlug={lesson.slug}
+          duration={lesson.duration}
           startSeconds={startSeconds}
+          courseTitle={course.title}
+          courseSlug={course.slug}
+          totalCourseLessons={totalCourseLessons}
           thumbnailUrl={lesson.thumbnailUrl}
         />
       </div>

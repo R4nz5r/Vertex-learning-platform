@@ -12,7 +12,13 @@
     "typegen": "sanity schema extract --enforce-required-fields && sanity typegen generate",
     "seed:build": "node scripts/seed/build-ndjson.mjs",
     "seed:import": "sanity dataset import scripts/seed/seed.ndjson production --replace",
-    "context:import": "sanity dataset import scripts/context/vertex-search.ndjson production --replace"
+    "context:import": "sanity dataset import scripts/context/vertex-search.ndjson production --replace",
+    "ingest:videos": "node scripts/ingest/ingest-videos.mjs",
+    "ingest:build": "node scripts/ingest/build-ndjson.mjs",
+    "ingest:import": "sanity dataset import scripts/ingest/videos.ndjson production --replace",
+    "video:ingest": "node scripts/ingest/ingest-videos.mjs",
+    "video:build": "node scripts/ingest/build-ndjson.mjs",
+    "video:import": "sanity dataset import scripts/ingest/videos.ndjson production --replace"
   },
   "keywords": [
     "sanity"

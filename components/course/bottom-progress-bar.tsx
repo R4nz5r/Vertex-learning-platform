@@ -1,18 +1,33 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useCourseProgress } from "@/lib/progress";
 
 interface BottomProgressBarProps {
+  courseSlug?: string;
+  totalLessonsCount?: number;
   progressPercentage?: number;
   firstLessonSlug?: string | null;
 }
 
 export function BottomProgressBar({
-  progressPercentage = 0,
+  courseSlug,
+  totalLessonsCount = 0,
+  progressPercentage: initialPercentage = 0,
   firstLessonSlug,
 }: BottomProgressBarProps) {
+  const progress = useCourseProgress(courseSlug || "");
+  const dynamicPercentage =
+    courseSlug && totalLessonsCount > 0
+      ? progress.isCourseCompleted
+        ? 100
+        : Math.round((progress.completedLessons.length / totalLessonsCount) * 100)
+      : initialPercentage;
+
   const continueHref = firstLessonSlug ? `/lessons/${firstLessonSlug}` : "#";
-  const clampedProgress = Math.min(100, Math.max(0, progressPercentage));
+  const clampedProgress = Math.min(100, Math.max(0, dynamicPercentage));
 
   return (
     <div className="w-full rounded-2xl bg-white border border-[#EBE4DC] p-5 sm:p-6 mb-6 shadow-[0_4px_16px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-6">
