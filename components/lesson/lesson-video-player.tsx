@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { getEmbedUrl } from "@/lib/video";
-import { markLessonCompleted } from "@/lib/progress";
 import { Play } from "lucide-react";
 import posthog from "posthog-js";
 
@@ -26,7 +25,6 @@ export function LessonVideoPlayer({
   startSeconds = 0,
   courseTitle,
   courseSlug,
-  totalCourseLessons,
   thumbnailUrl,
 }: LessonVideoPlayerProps) {
   const parsedVideo = getEmbedUrl(videoUrl, startSeconds);
@@ -35,7 +33,6 @@ export function LessonVideoPlayer({
 
   // Milestone tracking references
   const firedMilestones = useRef<Set<number>>(new Set());
-  const completedFired = useRef<boolean>(false);
   const elapsedSecondsRef = useRef<number>(0);
   const hasCapturedStart = useRef<boolean>(false);
 

@@ -160,12 +160,17 @@ function validateAndBuildNdjson() {
           lastSeconds = ch.startSeconds
 
           // Ensure stable _key
-          if (!ch._key) {
+          if (!ch._key || typeof ch._key !== 'string' || ch._key.trim() === '') {
             ch._key = `chapter-${ch.startSeconds}`
           }
-          if (chapterKeys.has(ch._key)) {
-            ch._key = `chapter-${c}-${ch.startSeconds}`
+          // Loop until unique key
+          let suffix = 0
+          let candidateKey = ch._key
+          while (chapterKeys.has(candidateKey)) {
+            suffix++
+            candidateKey = `chapter-${c}-${ch.startSeconds}-${suffix}`
           }
+          ch._key = candidateKey
           chapterKeys.add(ch._key)
         }
       }

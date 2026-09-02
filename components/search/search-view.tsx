@@ -200,7 +200,7 @@ export function SearchResultsView() {
                   onClick={() => {
                     posthog.capture("search_empty_topic_clicked", {
                       topic,
-                      previous_query: query,
+                      previous_query_length: query.length,
                     });
                     setQuery(topic);
                     setLoading(true);

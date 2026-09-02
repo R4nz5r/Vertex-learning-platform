@@ -39,9 +39,9 @@ Implement comprehensive PostHog event tracking across Vertex for all features bu
 2. **Lesson Completion Trigger**:
    - Fire `lesson_completed` client-side automatically when watch depth reaches ≥ 95% of lesson duration. This satisfies the `signals-scout-course-funnel` scout without requiring a backend progress store.
 3. **Search Query Capture & Privacy**:
-   - Capture search analytics with privacy-safe properties (`query_length`, `result_count`, `course_count`, `sort`, `has_results`) across client-side events (`search_submitted`, `search_result_clicked`) and server-side tracking, omitting raw PII or sensitive query text in client payloads.
+   - Capture search analytics with privacy-safe properties (`query_length`, `result_count`, `course_count`, `sort`, `has_results`) across client-side events (`search_submitted`, `search_result_clicked`) and server-side tracking. Client-side payloads send `query_length` instead of raw query text for privacy; server-side may capture query for operational debugging.
 4. **Resume Used Event**:
-   - Fire `lesson_resume_used` when `startSeconds > 0` on player start or when a user clicks a timestamped video result / resume affordance.
+   - Fire `lesson_resume_used` when the video player actually starts playback with `startSeconds > 0` (i.e., in the player's start flow). Timestamp-click attribution is tracked separately through `search_result_clicked.start_seconds`.
 5. **Distinct ID & PII**:
    - User identity is tied strictly to the Clerk user ID (`distinctId`). Event properties do not contain user emails, names, or passwords.
 
@@ -73,7 +73,17 @@ Implement comprehensive PostHog event tracking across Vertex for all features bu
 
 ## Acceptance criteria
 
-1. All 6 requested event types (`search_performed`, `search_result_clicked`, `video_play_started`, `video_watch_progress`, `lesson_resume_used`, `lesson_completed`) fire cleanly with exact properties.
+1. All 10 required event types fire cleanly with exact properties:
+   - `catalog_viewed` — `{ page }`
+   - `search_performed` — `{ query, result_count, course_count, sort, has_results }` (server-side)
+   - `search_result_clicked` — `{ result_type, lesson_title, lesson_slug, course_title, course_slug, start_seconds, rank, query_length }`
+   - `search_empty_topic_clicked` — `{ topic, previous_query_length }`
+   - `video_play_started` — `{ lesson_title, lesson_slug, course_title, course_slug, video_url, start_seconds, is_resume, duration_seconds }`
+   - `video_watch_progress` — `{ lesson_slug, milestone_percentage, seconds_watched, total_duration }`
+   - `lesson_resume_used` — `{ lesson_slug, start_seconds, source }`
+   - `lesson_completed` — `{ course_slug, lesson_slug, total_completed, is_course_completed, completed_via }`
+   - `lesson_bookmark_toggled` — `{ lesson_slug, course_slug, is_bookmarked }`
+   - `lesson_sidebar_clicked` — `{ lesson_slug, course_slug, position }`
 2. `npx tsc --noEmit` passes with 0 errors.
 3. `npm run lint` passes with 0 errors.
 4. `npm run build` succeeds cleanly.

@@ -28,7 +28,7 @@ Fix the course completion and module completion logic so learners can complete a
 1. **Client-side Progress Store with LocalStorage Persistence (`lib/progress.ts` & React Hook)**:
    - Maintain client-side progress state keyed by user ID (or guest session) and course slug in `localStorage`.
    - Track completed lesson slugs (`Set<string>`) per course.
-   - Automatically initialize pre-completed lessons for preceding modules (or read stored completed lessons) so learners maintain their past progress while being able to complete active and future lessons.
+   - Initialize each course's completed lesson set only from stored completion state; `defaultPrecedingSlugs` remains empty so visiting a later lesson does not mark preceding lessons complete.
 
 2. **Accurate Progress & Module Completion**:
    - Calculate course completion percentage based on `Math.round((completedLessonsCount / totalLessonsCount) * 100)`.

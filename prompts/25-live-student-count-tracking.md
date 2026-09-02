@@ -28,11 +28,11 @@ Implement dynamic, real-time student count tracking across course detail pages (
 
 1. **Active Learner Tracking Store (`lib/enrollment.ts` / `lib/progress.ts`)**:
    - Track unique active learners who engage with each course (via "Continue Learning", video playback, lesson completion, or authenticated progress).
-   - Provide a reactive `useCourseStudentCount(courseSlug, baselineCount)` hook using `useSyncExternalStore` so updates reflect instantly in the UI.
-   - Automatically count active learner interactions to increment and maintain the live student count on top of the authored baseline.
+   - Provide a reactive `useCourseStudentCount(courseSlug)` hook using `useSyncExternalStore` so updates reflect instantly in the UI. The hook takes only `courseSlug` (no `baselineCount` parameter); zero-engagement defaults to 1.
+   - Storage is browser-local (`localStorage`). Cross-user aggregation would require server-side persistence (not currently implemented).
 
 2. **Integration in Course Hero (`components/course/course-hero.tsx`)**:
-   - Connect the student count chip in `CourseHero` to `useCourseStudentCount(courseSlug, studentCount)`.
+   - Connect the student count chip in `CourseHero` to `useCourseStudentCount(courseSlug)`.
    - Ensure the student count dynamically reflects live enrolled learners with smooth formatting.
 
 3. **PostHog Analytics Integration**:

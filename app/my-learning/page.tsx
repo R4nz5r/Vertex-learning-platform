@@ -285,7 +285,7 @@ export default async function MyLearningPage() {
                     Sign in to save and resume your learning progress
                   </h2>
                   <p className="text-[14px] text-neutral-500 leading-relaxed">
-                    Create an account or sign in to track completed lessons, save your timestamp playback position, and pick up where you left off across any device.
+                    Create an account or sign in to track completed lessons, save your timestamp playback position, and pick up where you left off.
                   </p>
                 </div>
 

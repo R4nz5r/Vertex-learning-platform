@@ -165,8 +165,10 @@ export function toggleLessonCompleted(
 ): CourseProgressState {
   const current = getStoredProgress(courseSlug);
   const completedSet = new Set(current.completedLessons);
+  const wasCompleted = completedSet.has(lessonSlug);
+  const wasCourseCompleted = Boolean(current.isCourseCompleted);
 
-  if (completedSet.has(lessonSlug)) {
+  if (wasCompleted) {
     completedSet.delete(lessonSlug);
   } else {
     completedSet.add(lessonSlug);
@@ -185,6 +187,25 @@ export function toggleLessonCompleted(
   };
 
   saveProgress(courseSlug, nextState);
+
+  // Emit completion events only when toggling TO completed (not when uncompleting)
+  if (!wasCompleted) {
+    posthog.capture("lesson_completed", {
+      course_slug: courseSlug,
+      lesson_slug: lessonSlug,
+      total_completed: completedList.length,
+      is_course_completed: isCourseCompleted,
+      completed_via: "manual_toggle",
+    });
+
+    if (isCourseCompleted && !wasCourseCompleted) {
+      posthog.capture("course_completed", {
+        course_slug: courseSlug,
+        total_lessons: totalCourseLessons,
+      });
+    }
+  }
+
   return nextState;
 }
 

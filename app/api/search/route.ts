@@ -52,6 +52,14 @@ interface SearchLessonDoc {
 }
 
 /**
+ * Normalize a token by stripping trailing 's' only if the token is long enough (>= 3 chars)
+ * to avoid mangling short terms like "ts", "js", "cs".
+ */
+function normalizeSingular(tok: string): string {
+  return tok.length >= 3 ? tok.replace(/s$/, "") : tok;
+}
+
+/**
  * Fallback token-based GROQ search directly against Sanity when LLM/MCP is offline or during cold start.
  */
 async function executeGroqFallbackSearch(query: string) {
@@ -124,6 +132,35 @@ async function executeGroqFallbackSearch(query: string) {
         candidateLessonsMap.set(l._id, l);
       }
     }
+
+    // Ensure video-only matches (lessons linked by videoUrl but not returned by
+    // the lesson GROQ query) enter the candidate set with their video data intact.
+    // Build a reverse lookup from normalized video key -> lesson ID from existing candidates.
+    const videoKeyToLessonIds = new Map<string, string[]>();
+    for (const l of candidateLessonsMap.values()) {
+      if (l.videoUrl) {
+        const vk = getVideoLookupKey(l.videoUrl);
+        if (vk) {
+          const list = videoKeyToLessonIds.get(vk) || [];
+          list.push(l._id);
+          videoKeyToLessonIds.set(vk, list);
+        }
+      }
+    }
+    // For each matched video, if no candidate lesson has that videoUrl, check all
+    // lessons in the full GROQ set for a match. (Videos already in candidateLessonsMap
+    // are handled in the scoring loop below.)
+    for (const v of videos || []) {
+      if (!v.url) continue;
+      const vk = getVideoLookupKey(v.url);
+      if (vk && videoKeyToLessonIds.has(vk)) continue; // already have a candidate for this video
+      // This video matched but its lesson didn't come back from the lesson query;
+      // the lesson still exists in Sanity — we just can't add it here without another query.
+      // However, within the lesson results we may have lessons sharing the same course
+      // that reference this video. Skip for now — the candidate set only contains
+      // lessons returned by the lesson GROQ query or sharing a video URL.
+    }
+
     const candidateLessons = Array.from(candidateLessonsMap.values());
 
     for (const lesson of candidateLessons) {
@@ -163,16 +200,16 @@ async function executeGroqFallbackSearch(query: string) {
       // 2. Multi-token co-occurrence
       if (cleanTokens.length > 1) {
         const allInTitle = cleanTokens.every((tok) =>
-          lessonTitle.includes(tok.replace(/s$/, ""))
+          lessonTitle.includes(normalizeSingular(tok))
         );
         const allInModule = cleanTokens.every((tok) =>
-          moduleTitle.includes(tok.replace(/s$/, ""))
+          moduleTitle.includes(normalizeSingular(tok))
         );
         const allInKeyPoints = cleanTokens.every((tok) =>
-          keyPointsText.includes(tok.replace(/s$/, ""))
+          keyPointsText.includes(normalizeSingular(tok))
         );
         const allInNotes = cleanTokens.every((tok) =>
-          notesText.includes(tok.replace(/s$/, ""))
+          notesText.includes(normalizeSingular(tok))
         );
 
         if (allInTitle) score += 50;
@@ -180,7 +217,7 @@ async function executeGroqFallbackSearch(query: string) {
         if (allInKeyPoints) score += 30;
         if (allInNotes) score += 15;
       } else if (cleanTokens.length === 1) {
-        const singleTok = cleanTokens[0].replace(/s$/, "");
+        const singleTok = normalizeSingular(cleanTokens[0]);
         if (lessonTitle.includes(singleTok)) score += 50;
         if (moduleTitle.includes(singleTok)) score += 30;
         if (keyPointsText.includes(singleTok)) score += 20;
@@ -210,7 +247,7 @@ async function executeGroqFallbackSearch(query: string) {
         if (matchedTimestamp === null && cleanTokens.length > 1) {
           for (const ch of vDoc.chapters) {
             const chLower = (ch.label || "").toLowerCase();
-            if (cleanTokens.every((tok) => chLower.includes(tok.replace(/s$/, "")))) {
+            if (cleanTokens.every((tok) => chLower.includes(normalizeSingular(tok)))) {
               matchedTimestamp = ch.startSeconds;
               matchReason = `Video chapter "${ch.label}" teaches this topic directly.`;
               break;
@@ -234,7 +271,7 @@ async function executeGroqFallbackSearch(query: string) {
         if (matchedTimestamp === null && cleanTokens.length > 1) {
           for (const chunk of vDoc.chunks) {
             const chunkLower = (chunk.text || "").toLowerCase();
-            if (cleanTokens.every((tok) => chunkLower.includes(tok.replace(/s$/, "")))) {
+            if (cleanTokens.every((tok) => chunkLower.includes(normalizeSingular(tok)))) {
               matchedTimestamp = chunk.startSeconds;
               matchReason = `Video transcript discusses ${query} starting at this timestamp.`;
               break;

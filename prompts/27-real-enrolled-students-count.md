@@ -27,7 +27,7 @@ Configure the student count display across course hero and lesson pages to refle
 
 1. **Purely Real Active Learner Count in `lib/enrollment.ts`**:
    - Update `useCourseStudentCount` to calculate count based exclusively on real active learners recorded in the enrollment store.
-   - When a user is viewing/engaging with a course, ensure at least 1 real student count is registered upon active engagement or first visit.
+   - Register a learner only on first active engagement (lesson completion, video playback, or explicit course start), not on mere page viewing. Repeat visits and signed-out browsing do not increment enrollment counts.
 2. **Grammar & Singular/Plural Formatting**:
    - Ensure proper pluralization: `1 student` vs `2 students`.
 3. **Consistent Integration**:

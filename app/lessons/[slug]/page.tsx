@@ -92,6 +92,7 @@ export default async function LessonDetailPage({
 
     for (let lIdx = 0; lIdx < modLessons.length; lIdx++) {
       const l = modLessons[lIdx];
+      if (!l?.slug) continue; // skip null or slugless lessons
       const navItem: NavLesson = {
         title: l.title,
         slug: l.slug,

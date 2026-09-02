@@ -28,6 +28,7 @@ Optimize the Vertex search backend and result rendering so that queries (such as
      - All query tokens present in notes: +15 points
      - Isolated partial-token matches (e.g. single word "server" when query is "server actions"): 0 points / low noise.
    - **Noise Filtering Threshold**: If specific topic hits (score >= 30) are found, drop low-scoring noise (score < 20) so queries return only the truly relevant lessons instead of broad keyword spam.
+   - **Field-Aware Filtering**: When any title or module-topic match exists, note-only matches serve as fallbacks only. Retain lessons with a title or module match and exclude note-only hits unless no structural match is available.
    - For `"server actions"`, this returns the 3 focused lessons from Module 4 ("Server Actions and Mutations") across 1 course ("Next.js App Router in Depth").
 2. **System Prompt & LLM Directives**:
    - Update `lib/search/system-prompt.ts` to instruct the LLM to strictly prioritize lessons where the full concept or module topic is taught, and forbid returning loose hits where only an isolated generic word is mentioned.

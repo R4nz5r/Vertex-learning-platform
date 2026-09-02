@@ -67,8 +67,8 @@ Probed live against three seeded video ids before writing this:
   around 120 chunks — never one big field (§8).
 - **Cache and generated NDJSON are not committed.** `videos.json` in the seed pipeline is small;
   120 transcripts are megabytes. Cache goes to `studio/scripts/ingest/.cache/<id>.json`, output to
-  `studio/scripts/ingest/videos.ndjson`, both gitignored. Re-runs read the cache and do zero
-  network traffic.
+  `studio/scripts/ingest/videos.ndjson`, both gitignored. Re-runs read the per-video cache and make
+  no provider fetches (the initial Sanity lesson manifest query still runs).
 - A small `parse-video-url.mjs` duplicates the provider/id rules from `lib/video.ts` — the two
   workspaces are separate npm packages and a `.mjs` script cannot import the web app's TypeScript.
   It stays minimal (provider + id only, no embed building), with a comment pointing at `lib/video.ts`
@@ -110,12 +110,12 @@ Probed live against three seeded video ids before writing this:
    Preview shows the id plus `N chapters · M chunks`.
 2. Both array member objects are non-negative integer `startSeconds` plus required text/label, with
    a preview that renders `mm:ss — label`.
-3. Every array member gets a deterministic `_key` (`chapter-<startSeconds>`, `chunk-<index>`), so a
-   re-import produces no diff noise — same rule the seed builder follows.
+3. Every array member gets a deterministic `_key` (`chapter-<startSeconds>`, `chunk-<index>-<startSeconds>`); existing
+   keys are preserved when valid and unique. A re-import produces no diff noise — same rule the seed builder follows.
 4. The runner: resumes from cache, `--force` re-fetches, `--limit=N` for a smoke run, throttles
    between videos, persists each video as it lands, prints a per-video line, and exits non-zero with
-   a list when anything failed. It never partially writes a video: no cues means a recorded failure,
-   not a document with an empty `chunks` array.
+   a list when anything failed. Processing succeeds when either extracted cues or the precomputed
+   dataset fallback produces non-empty chunks; failure is recorded only when both yield no chunks.
 5. The builder refuses to write `videos.ndjson` if any document would fail the schema's validation
    rules (ids well-formed, `startSeconds` monotonic and integer, no empty text, chapters sorted).
 6. Chapters deduped by `startSeconds`, sorted ascending, labels trimmed, anything past the video's

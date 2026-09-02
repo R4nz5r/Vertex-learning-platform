@@ -144,9 +144,18 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(url, { ...options, signal: controller.signal })
+    // Do NOT clear the timer here — the AbortController signal must remain
+    // active through response body reads (.text(), .json()). The signal is
+    // respected by Node.js stream consumption, so if the body read stalls
+    // past the timeout the fetch is still aborted.
+    //
+    // Attach a cleanup function so callers can clear the timer after they
+    // have finished consuming the body.
+    response._clearTimeout = () => clearTimeout(timer)
     return response
-  } finally {
+  } catch (err) {
     clearTimeout(timer)
+    throw err
   }
 }
 
@@ -183,6 +192,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
 
     if (watchRes.ok) {
       const html = await watchRes.text()
+      watchRes._clearTimeout?.()
 
       // Extract title from meta or title tag
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i)
@@ -200,6 +210,8 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
           // JSON parse failed for initialData
         }
       }
+    } else {
+      watchRes._clearTimeout?.()
     }
   } catch (err) {
     // Watch page fetch error — continue to player API
@@ -237,6 +249,7 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
 
     if (playerRes.ok) {
       const playerData = await playerRes.json()
+      playerRes._clearTimeout?.()
 
       if (!pageTitle && playerData.videoDetails?.title) {
         pageTitle = playerData.videoDetails.title
@@ -254,6 +267,8 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
       if (enTrack?.baseUrl) {
         captionBaseUrl = enTrack.baseUrl
       }
+    } else {
+      playerRes._clearTimeout?.()
     }
   } catch (err) {
     // InnerTube API call failed
@@ -273,12 +288,15 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
 
       if (cueRes.ok) {
         const textContent = await cueRes.text()
+        cueRes._clearTimeout?.()
         if (textContent.trim().startsWith('{')) {
           const json3 = JSON.parse(textContent)
           cues = parseJson3Cues(json3)
         } else if (textContent.includes('<transcript') || textContent.includes('<text')) {
           cues = parseXmlTranscript(textContent)
         }
+      } else {
+        cueRes._clearTimeout?.()
       }
     } catch (err) {
       // JSON3 fetch/parse error
@@ -292,7 +310,10 @@ export async function fetchYouTubeVideoData(videoId, options = {}) {
         })
         if (rawRes.ok) {
           const xml = await rawRes.text()
+          rawRes._clearTimeout?.()
           cues = parseXmlTranscript(xml)
+        } else {
+          rawRes._clearTimeout?.()
         }
       } catch (err) {
         // Fallback timedtext fetch error
