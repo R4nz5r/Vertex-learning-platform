@@ -64,7 +64,20 @@ export function MyLearningDashboard({
   defaultPrecedingLessonsMap = {},
 }: MyLearningDashboardProps) {
   const [filter, setFilter] = useState<FilterType>("all");
-  const bookmarkedSlugs = useCourseBookmarks();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    const handle = requestAnimationFrame(() => {
+      setHasMounted(true);
+    });
+    return () => cancelAnimationFrame(handle);
+  }, []);
+
+  const rawBookmarks = useCourseBookmarks();
+  const bookmarkedSlugs = useMemo(
+    () => (hasMounted ? rawBookmarks : []),
+    [hasMounted, rawBookmarks]
+  );
 
   // Subscribe to progress storage changes for reactive dashboard updates
   const progressVersion = useSyncExternalStore(
@@ -109,7 +122,12 @@ export function MyLearningDashboard({
     allAvailableCourses.forEach((c) => {
       const allL = (c.modules || []).flatMap((m) => m.lessons || []).filter((l) => Boolean(l?.slug));
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
-      const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
+      
+      // Before client mount has completed, return empty progress to match SSR HTML exactly
+      const prog = hasMounted
+        ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [])
+        : { completedLessons: [], isCourseCompleted: false, lastWatchedSlug: undefined };
+
       const set = new Set(prog.completedLessons);
       const isComp = prog.isCourseCompleted || (allL.length > 0 && allL.every((l) => set.has(l.slug))) || (allL.length === 0 && set.size >= total);
       const inProg = !isComp && (set.size > 0 || Boolean(prog.lastWatchedSlug));
@@ -119,7 +137,7 @@ export function MyLearningDashboard({
     });
 
     return map;
-  }, [allAvailableCourses, defaultPrecedingLessonsMap, progressVersion]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion]);
 
   // Derive enrolled / active courses from actual learner progress
   const { activeCourses, recommendedCoursesList } = useMemo(() => {
