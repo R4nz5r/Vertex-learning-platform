@@ -57,16 +57,6 @@ interface MyLearningDashboardProps {
 
 type FilterType = "all" | "in-progress" | "completed" | "bookmarked";
 
-const emptySubscribe = () => () => {};
-
-export function useIsMounted(): boolean {
-  return useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-}
-
 export function MyLearningDashboard({
   allCourses,
   inProgressCourses: propInProgress,
@@ -74,13 +64,7 @@ export function MyLearningDashboard({
   defaultPrecedingLessonsMap = {},
 }: MyLearningDashboardProps) {
   const [filter, setFilter] = useState<FilterType>("all");
-  const isMounted = useIsMounted();
-
-  const rawBookmarks = useCourseBookmarks();
-  const bookmarkedSlugs = useMemo(
-    () => (isMounted ? rawBookmarks : []),
-    [isMounted, rawBookmarks]
-  );
+  const bookmarkedSlugs = useCourseBookmarks();
 
   // Subscribe to progress storage changes for reactive dashboard updates
   const progressVersion = useSyncExternalStore(
@@ -125,12 +109,7 @@ export function MyLearningDashboard({
     allAvailableCourses.forEach((c) => {
       const allL = (c.modules || []).flatMap((m) => m.lessons || []).filter((l) => Boolean(l?.slug));
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
-      
-      // Before client mounting (SSR and initial hydration pass), use empty progress state to match SSR HTML
-      const prog = isMounted
-        ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [])
-        : { completedLessons: [], isCourseCompleted: false, lastWatchedSlug: undefined };
-
+      const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
       const set = new Set(prog.completedLessons);
       const isComp = prog.isCourseCompleted || (allL.length > 0 && allL.every((l) => set.has(l.slug))) || (allL.length === 0 && set.size >= total);
       const inProg = !isComp && (set.size > 0 || Boolean(prog.lastWatchedSlug));
@@ -140,7 +119,7 @@ export function MyLearningDashboard({
     });
 
     return map;
-  }, [allAvailableCourses, defaultPrecedingLessonsMap, isMounted, progressVersion]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, progressVersion]);
 
   // Derive enrolled / active courses from actual learner progress
   const { activeCourses, recommendedCoursesList } = useMemo(() => {
@@ -216,7 +195,7 @@ export function MyLearningDashboard({
   const primaryDefaults = primaryCourse ? defaultPrecedingLessonsMap[primaryCourse.slug] || [] : [];
 
   return (
-    <div className="space-y-8 sm:space-y-12">
+    <div suppressHydrationWarning className="space-y-8 sm:space-y-12">
       {/* ── 4-Card Stats Summary Grid (Mobile-First 2x2 & Desktop 1x4) ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
         {/* Stat 1: Courses In Progress */}
