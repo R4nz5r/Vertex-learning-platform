@@ -7,20 +7,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../../..')
 const envLocalPath = path.join(rootDir, '.env.local')
 
-// Read .env.local
-let token = process.env.SANITY_API_TOKEN || process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_API_READ_TOKEN
+// Read write token from environment or .env.local
+let writeToken = process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_API_TOKEN || ''
+let readToken = process.env.SANITY_API_READ_TOKEN || ''
 if (fs.existsSync(envLocalPath)) {
   const envContent = fs.readFileSync(envLocalPath, 'utf-8')
   for (const line of envContent.split('\n')) {
     const trimmed = line.trim()
-    if (trimmed.startsWith('SANITY_API_READ_TOKEN=')) {
-      token = trimmed.split('=')[1].trim()
-    }
     if (trimmed.startsWith('SANITY_API_WRITE_TOKEN=')) {
-      token = trimmed.split('=')[1].trim()
+      writeToken = trimmed.split('=')[1].trim()
+    } else if (trimmed.startsWith('SANITY_API_READ_TOKEN=')) {
+      readToken = trimmed.split('=')[1].trim()
     }
   }
 }
+
+const token = writeToken || readToken
 
 const client = createClient({
   projectId: '0p3a2wia',

@@ -3,7 +3,7 @@
 import { useSyncExternalStore, useMemo, useEffect, useState, useCallback } from "react";
 import posthog from "posthog-js";
 import { useAuth } from "@clerk/nextjs";
-import { getAllStoredProgress } from "./progress";
+import { getAllStoredProgress, PROGRESS_EVENT_NAME } from "./progress";
 
 const READ_NOTIFICATIONS_BASE_KEY = "vertex_read_notifications";
 const MILESTONE_TIMESTAMPS_BASE_KEY = "vertex_milestone_timestamps";
@@ -217,6 +217,27 @@ function getMilestoneTimestamp(milestoneId: string, stateTimestamp?: number, use
 export function useNotifications() {
   const { userId, isSignedIn } = useAuth();
   const readIds = useReadNotificationIds(userId);
+  const [progressVersion, setProgressVersion] = useState(0);
+
+  // Subscribe to progress updates so milestone notifications and unread counts recompute immediately
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleProgress = (e: Event) => {
+      const customEvent = e as CustomEvent<{ userId?: string | null }>;
+      if (!customEvent.detail || customEvent.detail.userId === undefined || customEvent.detail.userId === userId) {
+        setProgressVersion((v) => v + 1);
+      }
+    };
+
+    window.addEventListener(PROGRESS_EVENT_NAME, handleProgress);
+    window.addEventListener("storage", handleProgress);
+
+    return () => {
+      window.removeEventListener(PROGRESS_EVENT_NAME, handleProgress);
+      window.removeEventListener("storage", handleProgress);
+    };
+  }, [userId]);
 
   const [serverNotifications, setServerNotifications] = useState<Array<Omit<NotificationItem, "isRead">>>(
     cachedServerNotifications || []
@@ -258,6 +279,7 @@ export function useNotifications() {
   // Merge server-side new course notifications with local milestones (e.g. course completed)
   // Milestone notifications are STRICTLY isolated to the signed-in user
   const notifications: NotificationItem[] = useMemo(() => {
+    void progressVersion;
     const list: NotificationItem[] = [];
     const readSet = new Set(readIds);
 
@@ -307,7 +329,7 @@ export function useNotifications() {
       const timeB = typeof b.timestamp === "number" ? b.timestamp : new Date(b.timestamp).getTime();
       return timeB - timeA;
     });
-  }, [serverNotifications, readIds, isSignedIn, userId]);
+  }, [serverNotifications, readIds, isSignedIn, userId, progressVersion]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((n) => !n.isRead).length;

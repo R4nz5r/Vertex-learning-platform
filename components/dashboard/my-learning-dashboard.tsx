@@ -99,6 +99,7 @@ export function MyLearningDashboard({
   );
 
   const { user } = useUser();
+  const userId = user?.id;
 
   const allAvailableCourses = useMemo(() => {
     if (allCourses && allCourses.length > 0) {
@@ -119,7 +120,6 @@ export function MyLearningDashboard({
   const progressMap = useMemo(() => {
     // progressVersion and user dependency triggers recomputation when storage or user updates
     void progressVersion;
-    const userId = user?.id;
 
     const map = new Map<
       string,
@@ -160,7 +160,7 @@ export function MyLearningDashboard({
     });
 
     return map;
-  }, [allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion, userId]);
 
   // Derive enrolled / active courses from actual learner progress
   const { activeCourses, recommendedCoursesList } = useMemo(() => {
@@ -200,7 +200,7 @@ export function MyLearningDashboard({
         completedLessons += data.completedLessonsCount;
 
         // Calculate learned seconds based on completed lessons
-        const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
+        const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId);
         const completedSlugs = new Set(prog.completedLessons);
         (c.modules || []).forEach((m) => {
           (m.lessons || []).forEach((l) => {
@@ -218,7 +218,7 @@ export function MyLearningDashboard({
       totalCompletedLessons: completedLessons,
       totalSecondsLearned: secondsLearned,
     };
-  }, [activeCourses, defaultPrecedingLessonsMap, progressMap]);
+  }, [activeCourses, defaultPrecedingLessonsMap, progressMap, userId]);
 
   // Filtered course items
   const filteredCourses = useMemo(() => {

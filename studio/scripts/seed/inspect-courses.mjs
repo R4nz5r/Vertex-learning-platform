@@ -22,6 +22,10 @@ async function run() {
   const res = await fetch(`https://0p3a2wia.api.sanity.io/v2024-01-01/data/query/production?query=${encodeURIComponent(query)}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
+  if (!res.ok) {
+    const errorText = await res.text()
+    throw new Error(`Sanity inspect query failed with status ${res.status}: ${errorText}`)
+  }
   const json = await res.json()
   console.log(JSON.stringify(json.result, null, 2))
 }

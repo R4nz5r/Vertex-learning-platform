@@ -215,6 +215,10 @@ export function saveProgress(
   if (typeof window === "undefined" || !courseSlug) return;
 
   const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    // Only persist progress for authenticated users; legacy prefix is read-only for migration
+    return;
+  }
 
   try {
     const now = Date.now();
@@ -262,6 +266,10 @@ export function markLessonCompleted(
   explicitUserId?: string | null
 ): CourseProgressState {
   const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
   const current = getStoredProgress(courseSlug, [], userId);
   const wasAlreadyCompleted = current.completedLessons.includes(lessonSlug);
   const wasCourseCompleted = Boolean(current.isCourseCompleted);
@@ -317,6 +325,10 @@ export function toggleLessonCompleted(
   explicitUserId?: string | null
 ): CourseProgressState {
   const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
   const current = getStoredProgress(courseSlug, [], userId);
   const completedSet = new Set(current.completedLessons);
   const wasCompleted = completedSet.has(lessonSlug);
@@ -376,6 +388,10 @@ export function markEntireCourseCompleted(
   explicitUserId?: string | null
 ): CourseProgressState {
   const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
   const current = getStoredProgress(courseSlug, [], userId);
   const now = Date.now();
   const nextState: CourseProgressState = {

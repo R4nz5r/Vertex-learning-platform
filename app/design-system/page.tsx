@@ -408,7 +408,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-white bg-gradient-to-b from-[#E76D42] to-[#D9572B] border border-[#D45428] shadow-[0_2px_8px_rgba(225,98,55,0.25)] select-none pointer-events-none"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-white bg-gradient-to-b from-[#E76D42] to-[#D9572B] border border-[#D45428] shadow-[0_2px_8px_rgba(225,98,55,0.25)] select-none pointer-events-none"
                         >
                           Get Started
                         </button>
@@ -416,7 +416,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-[#C24F1A] bg-white border border-[#FCDCC9] shadow-[0_1px_2px_rgba(0,0,0,0.02)] select-none pointer-events-none"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-[#C24F1A] bg-white border border-[#FCDCC9] shadow-[0_1px_2px_rgba(0,0,0,0.02)] select-none pointer-events-none"
                         >
                           Explore Courses
                         </button>
@@ -424,7 +424,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-neutral-700 bg-white border border-neutral-200 shadow-sm inline-flex items-center gap-1.5 select-none pointer-events-none"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-neutral-700 bg-white border border-neutral-200 shadow-sm inline-flex items-center gap-1.5 select-none pointer-events-none"
                         >
                           <span>View Lesson</span>
                           <ExternalLink size={12} strokeWidth={2} />
@@ -433,7 +433,7 @@ export default function DesignSystemPage() {
                       <td className="py-3">
                         <button
                           type="button"
-                          className="h-[38px] px-2 font-medium text-[13px] text-[#C24F1A] inline-flex items-center gap-1.5 select-none pointer-events-none"
+                          className="h-[44px] px-2 font-medium text-[13px] text-[#C24F1A] inline-flex items-center gap-1.5 select-none pointer-events-none"
                         >
                           <span>Watch Video</span>
                           <Play size={12} className="fill-current" strokeWidth={0} />
@@ -447,7 +447,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-white bg-[#B9380E] border border-[#A5300B] shadow-[0_4px_14px_rgba(185,56,14,0.38)] hover:bg-[#9B2F0B] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-white bg-[#B9380E] border border-[#A5300B] shadow-[0_4px_14px_rgba(185,56,14,0.38)] hover:bg-[#9B2F0B] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         >
                           Get Started
                         </button>
@@ -455,7 +455,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-[#A7320C] bg-[#FFF6F0] border border-[#F97316] hover:bg-[#FFEAE0] hover:border-[#EA580C] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-[#A7320C] bg-[#FFF6F0] border border-[#F97316] hover:bg-[#FFEAE0] hover:border-[#EA580C] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         >
                           Explore Courses
                         </button>
@@ -463,7 +463,7 @@ export default function DesignSystemPage() {
                       <td className="py-3 pr-3">
                         <button
                           type="button"
-                          className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-neutral-900 bg-neutral-100 border border-neutral-300 hover:bg-neutral-200 inline-flex items-center gap-1.5 active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-neutral-900 bg-neutral-100 border border-neutral-300 hover:bg-neutral-200 inline-flex items-center gap-1.5 active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         >
                           <span>View Lesson</span>
                           <ExternalLink size={12} strokeWidth={2} />
@@ -472,7 +472,7 @@ export default function DesignSystemPage() {
                       <td className="py-3">
                         <button
                           type="button"
-                          className="h-[38px] px-2 font-medium text-[13px] text-[#9A2C0A] underline inline-flex items-center gap-1.5 hover:text-[#7C2307] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          className="h-[44px] px-2 font-medium text-[13px] text-[#9A2C0A] underline inline-flex items-center gap-1.5 hover:text-[#7C2307] active:translate-y-px transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         >
                           <span>Watch Video</span>
                           <Play size={12} className="fill-current" strokeWidth={0} />
@@ -484,23 +484,23 @@ export default function DesignSystemPage() {
                     <tr>
                       <td className="py-3 pr-3 text-[11.5px] font-medium text-neutral-500 whitespace-nowrap">Disabled</td>
                       <td className="py-3 pr-3">
-                        <button disabled className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-white/80 bg-[#FFD4C2] border border-transparent cursor-not-allowed">
+                        <button disabled className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-white/80 bg-[#FFD4C2] border border-transparent cursor-not-allowed">
                           Get Started
                         </button>
                       </td>
                       <td className="py-3 pr-3">
-                        <button disabled className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-[#FDBA74] bg-white border border-[#FED7AA] cursor-not-allowed">
+                        <button disabled className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-[#FDBA74] bg-white border border-[#FED7AA] cursor-not-allowed">
                           Explore Courses
                         </button>
                       </td>
                       <td className="py-3 pr-3">
-                        <button disabled className="h-[38px] px-3.5 rounded-[8px] font-medium text-[13px] text-neutral-300 bg-neutral-50 border border-neutral-200 inline-flex items-center gap-1.5 cursor-not-allowed">
+                        <button disabled className="h-[44px] px-3.5 rounded-[12px] font-medium text-[13px] text-neutral-300 bg-neutral-50 border border-neutral-200 inline-flex items-center gap-1.5 cursor-not-allowed">
                           <span>View Lesson</span>
                           <ExternalLink size={12} strokeWidth={1.5} />
                         </button>
                       </td>
                       <td className="py-3">
-                        <button disabled className="h-[38px] px-2 font-medium text-[13px] text-neutral-300 inline-flex items-center gap-1.5 cursor-not-allowed">
+                        <button disabled className="h-[44px] px-2 font-medium text-[13px] text-neutral-300 inline-flex items-center gap-1.5 cursor-not-allowed">
                           <span>Watch Video</span>
                           <Play size={12} className="fill-neutral-300" strokeWidth={0} />
                         </button>
@@ -530,7 +530,7 @@ export default function DesignSystemPage() {
                 {/* Search Input */}
                 <div className="mb-5">
                   <p className="text-[12px] font-medium text-neutral-500 mb-2">Search / Text Input</p>
-                  <div className="relative flex items-center h-[42px] px-3.5 rounded-[10px] border border-[#E2E8F0] bg-white shadow-xs focus-within:border-[#F97316] focus-within:ring-1 focus-within:ring-[#F97316] transition-all">
+                  <div className="relative flex items-center h-[44px] px-3.5 rounded-[12px] border border-[#E2E8F0] bg-white shadow-xs focus-within:border-[#FB923C] focus-within:ring-1 focus-within:ring-[#FB923C] transition-all">
                     <Search className="w-4 h-4 text-neutral-400 mr-2.5 shrink-0" />
                     <span className="text-[13px] text-neutral-400 flex-1 select-none">Search anything...</span>
                     <span className="text-[10.5px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
@@ -542,7 +542,7 @@ export default function DesignSystemPage() {
                 {/* Select Dropdown */}
                 <div className="mb-6">
                   <p className="text-[12px] font-medium text-neutral-500 mb-2">Select</p>
-                  <div className="flex items-center justify-between h-[42px] px-3.5 rounded-[10px] border border-[#E2E8F0] bg-white shadow-xs cursor-pointer hover:border-neutral-300 transition-colors">
+                  <div className="flex items-center justify-between h-[44px] px-3.5 rounded-[12px] border border-[#E2E8F0] bg-white shadow-xs cursor-pointer hover:border-neutral-300 transition-colors">
                     <span className="text-[13px] text-neutral-800">Most Relevant</span>
                     <ChevronDown className="w-4 h-4 text-neutral-400" />
                   </div>

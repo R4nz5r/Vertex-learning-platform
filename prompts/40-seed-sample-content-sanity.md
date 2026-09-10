@@ -42,19 +42,19 @@ Seed the Sanity `production` dataset with realistic, high-grade curriculum conte
    - 10 courses × 12 lessons = 120 unique lessons.
    - A module equals the sum of its lessons; a course equals the sum of its modules.
 2. **Deterministic Document IDs**:
-   - `category.<slug>`
-   - `instructor.<slug>`
-   - `lesson.<course-slug>-<lesson-slug>`
-   - `course.<slug>`
-   - Allows safe, idempotent imports with `--replace`.
+    - `category.<slug>`
+    - `instructor.<slug>`
+    - `lesson.<course-slug>-<lesson-slug>`
+    - `course.<slug>`
+    - Allows safe, idempotent imports via `npm run seed:import` (safe-import runner using field-level patches).
 3. **Unique YouTube Video URLs**:
-   - 120 unique YouTube video IDs curated and mapped to each lesson's specific concepts (e.g. Go goroutines/channels/gRPC, AWS Lambda/API Gateway/DynamoDB, CSS grid/subgrid/container queries, Supabase auth/realtime/RLS, Rust ownership/tokio/wasm, GraphQL schema/resolvers/federation, AI code generation/LLM testing/evals, Playwright/Vitest/mocking, Ecommerce checkout/inventory/webhooks, Airflow/Kafka/dbt pipelines).
+    - 120 unique YouTube video IDs curated and mapped to each lesson's specific concepts (e.g. Go goroutines/channels/gRPC, AWS Lambda/API Gateway/DynamoDB, CSS grid/subgrid/container queries, Supabase auth/realtime/RLS, Rust ownership/tokio/wasm, GraphQL schema/resolvers/federation, AI code generation/LLM testing/evals, Playwright/Vitest/mocking, Ecommerce checkout/inventory/webhooks, Airflow/Kafka/dbt pipelines).
 4. **Lorem Picsum Seeded Images**:
-   - Course covers: `https://picsum.photos/seed/vertex-course-{slug}/1600/900`
-   - Instructor photos: `https://picsum.photos/seed/vertex-instructor-{slug}/800/800`
-   - Lesson thumbnails: YouTube standard HQ thumbnail assets `https://i.ytimg.com/vi/{videoId}/hqdefault.jpg`.
+    - Course covers: `https://picsum.photos/seed/vertex-course-{slug}/1600/900`
+    - Instructor photos: `https://picsum.photos/seed/vertex-instructor-{slug}/800/800`
+    - Lesson thumbnails: YouTube standard HQ thumbnail assets `https://i.ytimg.com/vi/{videoId}/hqdefault.jpg`.
 5. **Rich Educational Metadata**:
-   - Each lesson document includes rich Portable Text `notes` (paragraphs, headings, bullet lists), `keyPoints` array, `proTip` string, `resources` array, realistic `duration` in seconds, and `studentCount`.
+    - Each lesson document includes rich Portable Text `notes` (paragraphs, headings, bullet lists), `keyPoints` array, `proTip` string, `resources` array, realistic `duration` in seconds, and `studentCount`.
 
 ## Files to Touch / Create
 
@@ -83,13 +83,13 @@ studio/scripts/seed/build-ndjson.mjs      [VERIFY / RUN] Reference validation an
 ```bash
 cd f:\Nextjs\vertex\studio
 npm run seed:build
-npx sanity dataset import scripts/seed/seed.ndjson production --replace
+npm run seed:import
 npx sanity documents query "{'categories': count(*[_type == 'category']), 'instructors': count(*[_type == 'instructor']), 'courses': count(*[_type == 'course']), 'lessons': count(*[_type == 'lesson'])}"
 ```
 
 ## Manual Test Steps
 
 1. Run `npm run seed:build` in `studio/` to verify reference graph consistency and lack of broken refs or duplicate IDs.
-2. Import the dataset to Sanity `production` via `npx sanity dataset import scripts/seed/seed.ndjson production --replace`.
+2. Import the dataset to Sanity `production` via `npm run seed:import` (`safe-import.mjs`).
 3. Query the document counts via GROQ to confirm 10 courses and 120 lessons.
 4. Verify the web application catalog at `http://localhost:3000/courses` to inspect the rendered courses and lesson hierarchy.

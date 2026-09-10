@@ -10,7 +10,7 @@ This folder contains the seed dataset and tooling for safely populating and expa
 ## Files
 
 - **`seed.ndjson`**: The consolidated NDJSON dataset (contains all current courses, lessons, instructors, and categories).
-- **`safe-import.mjs`**: Safe, non-destructive import runner that uses transaction batches and `createOrReplace` upserts with zero deletion capability.
+- **`safe-import.mjs`**: Safe, non-destructive import runner that uses transaction batches with `createIfNotExists` and field-level `patch` updates, ensuring existing documents retain unmentioned fields with zero deletion capability.
 - **`generate-seed.mjs`**: Seed generation script that loads existing `seed.ndjson` records and non-destructively merges newly defined courses.
 - **`build-ndjson.mjs`**: Validation and compilation script that checks document references, prevents missing relations, and formats `seed.ndjson`.
 - **`content.mjs`**: Helper module providing structured programmatic access to local seed documents.

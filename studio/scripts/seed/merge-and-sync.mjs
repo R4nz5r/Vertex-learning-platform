@@ -2,41 +2,68 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { validateReferences } from './build-ndjson.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../../..')
 const envLocalPath = path.join(rootDir, '.env.local')
 const seedFilePath = path.join(__dirname, 'seed.ndjson')
 
-// Read token
-let token = ''
+// Read write token for mutations
+let token = process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_API_TOKEN || ''
 if (fs.existsSync(envLocalPath)) {
   const envContent = fs.readFileSync(envLocalPath, 'utf-8')
   for (const line of envContent.split('\n')) {
     const trimmed = line.trim()
-    if (trimmed.startsWith('SANITY_API_READ_TOKEN=')) {
+    if (trimmed.startsWith('SANITY_API_WRITE_TOKEN=')) {
       token = trimmed.split('=')[1].trim()
     }
   }
+}
+
+if (!token) {
+  console.error('❌ SANITY_API_WRITE_TOKEN is required for mutations in merge-and-sync.mjs.')
+  process.exit(1)
 }
 
 const projectId = '0p3a2wia'
 const dataset = 'production'
 const apiVersion = '2024-01-01'
 
-async function mergeAndSync() {
-  console.log('Extracting original seed documents from git HEAD...')
-  const originalNdjson = execSync('git show HEAD:studio/scripts/seed/seed.ndjson', {
-    cwd: rootDir,
-    encoding: 'utf-8',
-    maxBuffer: 10 * 1024 * 1024,
-  })
+async function mergeAndSync(targetRevision) {
+  const baseRevision = targetRevision || process.argv[2] || process.env.BASE_REVISION
+  if (!baseRevision || typeof baseRevision !== 'string' || baseRevision.trim() === '') {
+    console.error('❌ Error: A prior/base git revision is required as an argument to merge-and-sync.')
+    console.error('Usage: node scripts/seed/merge-and-sync.mjs <prior-commit-hash-or-ref>')
+    process.exit(1)
+  }
 
-  const originalDocs = originalNdjson.trim().split('\n').filter(Boolean).map(l => JSON.parse(l))
-  console.log(`Original documents from git: ${originalDocs.length}`)
+  const sanitizedRef = baseRevision.trim()
+  console.log(`Extracting original seed documents from git revision "${sanitizedRef}"...`)
+
+  let originalNdjson
+  try {
+    originalNdjson = execSync(`git show ${sanitizedRef}:studio/scripts/seed/seed.ndjson`, {
+      cwd: rootDir,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024,
+    })
+  } catch (err) {
+    console.error(`❌ Failed to read studio/scripts/seed/seed.ndjson from git revision "${sanitizedRef}":`, err.message)
+    process.exit(1)
+  }
 
   console.log('Reading current seed documents...')
   const currentNdjson = fs.readFileSync(seedFilePath, 'utf-8')
+
+  if (originalNdjson.trim() === currentNdjson.trim()) {
+    console.error(`❌ Error: Restoration source from revision "${sanitizedRef}" is identical to the current seed file on disk. A distinct prior/base revision is required.`)
+    process.exit(1)
+  }
+
+  const originalDocs = originalNdjson.trim().split('\n').filter(Boolean).map(l => JSON.parse(l))
+  console.log(`Original documents from git (${sanitizedRef}): ${originalDocs.length}`)
+
   const currentDocs = currentNdjson.trim().split('\n').filter(Boolean).map(l => JSON.parse(l))
   console.log(`Current documents on disk: ${currentDocs.length}`)
 
@@ -61,6 +88,14 @@ async function mergeAndSync() {
     counts[doc._type] = (counts[doc._type] || 0) + 1
   }
   console.log('Breakdown by type:', counts)
+
+  console.log('\nValidating references in merged documents...')
+  const validationResult = validateReferences(mergedDocs)
+  if (!validationResult.valid) {
+    console.error(`❌ Merge failed with ${validationResult.idValidationErrors} ID errors and ${validationResult.missingRefs} missing references. Aborting write and upload.`)
+    process.exit(1)
+  }
+  console.log('✅ All references in merged dataset verified successfully.')
 
   // Write merged NDJSON
   const mergedNdjson = mergedDocs.map(d => JSON.stringify(d)).join('\n') + '\n'
@@ -101,11 +136,16 @@ async function mergeAndSync() {
   const queryRes = await fetch(queryUrl, {
     headers: { Authorization: `Bearer ${token}` },
   })
+  if (!queryRes.ok) {
+    const errorText = await queryRes.text()
+    console.error(`❌ Final verification query failed with status ${queryRes.status}: ${errorText}`)
+    process.exit(1)
+  }
   const queryJson = await queryRes.json()
   console.log('\nFinal live Sanity dataset counts:', queryJson.result)
 }
 
-mergeAndSync().catch(err => {
+mergeAndSync(process.argv[2]).catch(err => {
   console.error('Error during merge and sync:', err)
   process.exit(1)
 })

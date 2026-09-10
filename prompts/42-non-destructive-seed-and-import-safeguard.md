@@ -20,13 +20,13 @@ Ensure that adding new courses, modules, or lessons in the future is strictly **
 
 ## Decisions and Assumptions
 
-1. **Zero-Deletion Policy**:
-   - All dataset import tools, scripts, and commands in the codebase must strictly perform additive `createOrReplace` upserts.
+1. **Zero-Deletion & Field-Preserving Policy**:
+   - All dataset import tools, scripts, and commands in the codebase must strictly perform additive imports using `createIfNotExists` and field-level `patch` mutations rather than wholesale `createOrReplace` (which would overwrite unmentioned fields on existing documents).
    - Any logic that queries existing documents and issues `delete` mutations is permanently eliminated.
 2. **Persistent Merge-on-Write**:
    - `generate-seed.mjs` (and any future generation/seeding script) must read existing documents from `seed.ndjson` first, index them by `_id`, merge incoming documents, and write back the consolidated dataset. Existing documents on disk are never purged.
 3. **Dedicated `safe-import.mjs` & npm script**:
-   - Standardize `npm run seed:import` to run `node scripts/seed/safe-import.mjs`, which performs safe batched `createOrReplace` mutations via the Sanity API, confirms that 0 deletions occurred, and verifies document counts.
+   - Standardize `npm run seed:import` to run `node scripts/seed/safe-import.mjs`, which performs safe batched `createIfNotExists` and field-level `patch` mutations via the Sanity API, confirms that 0 deletions occurred, preserves existing document fields absent from seed payloads, and verifies document counts.
 4. **Permanent Guidelines in `README.md`**:
    - Update `studio/scripts/seed/README.md` with explicit instructions on how to add new courses incrementally without overwriting past data.
 
