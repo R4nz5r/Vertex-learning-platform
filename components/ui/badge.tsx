@@ -8,9 +8,9 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  video:   "bg-primary-100 text-primary-700 border border-transparent",
-  lesson:  "bg-emerald-50 text-emerald-700 border border-transparent",
-  popular: "bg-transparent text-primary-700 border border-primary-500",
+  video:   "bg-[#FFF1EB] text-[#FF5A1F] border border-transparent",
+  lesson:  "bg-[#EEF2FF] text-[#4F46E5] border border-transparent",
+  popular: "bg-[#FFF6F0] text-[#EA580C] border border-[#FCDCC9]",
 };
 
 const labels: Record<BadgeVariant, string> = {

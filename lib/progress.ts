@@ -4,13 +4,17 @@ import { useSyncExternalStore, useMemo } from "react";
 import posthog from "posthog-js";
 import { registerCourseLearner } from "@/lib/enrollment";
 
-const STORAGE_PREFIX = "vertex_course_progress_";
+const LEGACY_STORAGE_PREFIX = "vertex_course_progress_";
+const USER_STORAGE_PREFIX = "vertex_progress_";
+const ACTIVE_USER_KEY = "vertex_active_user_id";
 export const PROGRESS_EVENT_NAME = "vertex_progress_updated";
 
 export interface CourseProgressState {
   completedLessons: string[]; // array of lesson slugs
   lastWatchedSlug?: string;
   isCourseCompleted?: boolean;
+  updatedAt?: number;
+  completedAt?: number;
 }
 
 const DEFAULT_EMPTY_STATE: CourseProgressState = Object.freeze({
@@ -18,11 +22,95 @@ const DEFAULT_EMPTY_STATE: CourseProgressState = Object.freeze({
   isCourseCompleted: false,
 });
 
+let memoryActiveUserId: string | null = null;
+
 /**
- * Get the localStorage key for a specific course.
+ * Get the active Clerk user ID from memory or localStorage.
  */
-function getStorageKey(courseSlug: string): string {
-  return `${STORAGE_PREFIX}${courseSlug}`;
+export function getActiveUserId(): string | null {
+  if (memoryActiveUserId) return memoryActiveUserId;
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(ACTIVE_USER_KEY);
+    if (stored) {
+      memoryActiveUserId = stored;
+      return stored;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Set or clear the active Clerk user ID.
+ * When a user signs in, seamlessly migrates any legacy un-scoped progress to this user.
+ */
+export function setActiveUserId(userId: string | null): void {
+  const previous = memoryActiveUserId;
+  memoryActiveUserId = userId;
+
+  if (typeof window !== "undefined") {
+    try {
+      if (userId) {
+        localStorage.setItem(ACTIVE_USER_KEY, userId);
+        migrateLegacyProgressToUser(userId);
+      } else {
+        localStorage.removeItem(ACTIVE_USER_KEY);
+      }
+    } catch (e) {
+      console.error("Error setting active user ID in localStorage:", e);
+    }
+
+    // Invalidate cached snapshots across user switches
+    snapshotCache.clear();
+    fallbackCache.clear();
+
+    if (previous !== userId) {
+      window.dispatchEvent(
+        new CustomEvent(PROGRESS_EVENT_NAME, {
+          detail: { courseSlug: "*", state: DEFAULT_EMPTY_STATE },
+        })
+      );
+    }
+  }
+}
+
+/**
+ * Migrate legacy un-scoped progress records (vertex_course_progress_*)
+ * strictly to the currently logged-in user and delete the legacy records.
+ */
+function migrateLegacyProgressToUser(userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(LEGACY_STORAGE_PREFIX)) {
+        const slug = key.slice(LEGACY_STORAGE_PREFIX.length);
+        if (slug) {
+          const raw = localStorage.getItem(key);
+          const targetKey = `${USER_STORAGE_PREFIX}${userId}_${slug}`;
+          // Only copy if user doesn't already have explicit progress for this course
+          if (!localStorage.getItem(targetKey) && raw) {
+            localStorage.setItem(targetKey, raw);
+          }
+          // Remove legacy un-scoped key to prevent bleeding to other users
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to migrate legacy progress to user:", err);
+  }
+}
+
+/**
+ * Get the user-scoped localStorage key for a specific course.
+ */
+function getStorageKey(courseSlug: string, explicitUserId?: string | null): string {
+  const userId = explicitUserId || getActiveUserId();
+  if (userId) {
+    return `${USER_STORAGE_PREFIX}${userId}_${courseSlug}`;
+  }
+  return `${LEGACY_STORAGE_PREFIX}${courseSlug}`;
 }
 
 /**
@@ -36,30 +124,44 @@ const fallbackCache = new Map<string, CourseProgressState>();
  */
 export function getStoredProgress(
   courseSlug: string,
-  defaultPrecedingLessons: string[] = []
+  defaultPrecedingLessons: string[] = [],
+  explicitUserId?: string | null
 ): CourseProgressState {
   if (typeof window === "undefined" || !courseSlug) {
     return DEFAULT_EMPTY_STATE;
   }
 
+  // If explicitUserId is explicitly null, treat as absent user and return empty state
+  if (explicitUserId === null) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const userId = explicitUserId !== undefined ? explicitUserId : getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const storageKey = getStorageKey(courseSlug, userId);
+  const cacheKey = `${userId}_${courseSlug}`;
+
   try {
-    const raw = localStorage.getItem(getStorageKey(courseSlug));
+    const raw = localStorage.getItem(storageKey);
     if (!raw) {
       if (defaultPrecedingLessons.length === 0) {
         return DEFAULT_EMPTY_STATE;
       }
-      let fallback = fallbackCache.get(courseSlug);
+      let fallback = fallbackCache.get(cacheKey);
       if (!fallback) {
         fallback = Object.freeze({
           completedLessons: Object.freeze([...defaultPrecedingLessons]) as unknown as string[],
           isCourseCompleted: false,
         });
-        fallbackCache.set(courseSlug, fallback);
+        fallbackCache.set(cacheKey, fallback);
       }
       return fallback;
     }
 
-    const cached = snapshotCache.get(courseSlug);
+    const cached = snapshotCache.get(cacheKey);
     if (cached && cached.raw === raw) {
       return cached.data;
     }
@@ -68,9 +170,10 @@ export function getStoredProgress(
     const frozenState = Object.freeze({
       ...parsed,
       completedLessons: Object.freeze(parsed.completedLessons || []) as unknown as string[],
+      completedAt: parsed.isCourseCompleted ? (parsed.completedAt || parsed.updatedAt || 0) : undefined,
     });
 
-    snapshotCache.set(courseSlug, { raw, data: frozenState });
+    snapshotCache.set(cacheKey, { raw, data: frozenState });
     return frozenState;
   } catch (err) {
     console.error("Failed to read course progress from localStorage:", err);
@@ -80,26 +183,81 @@ export function getStoredProgress(
 }
 
 /**
+ * Get all stored course progress records across localStorage strictly for the active or given user.
+ * If no user is logged in, returns an empty record set.
+ */
+export function getAllStoredProgress(explicitUserId?: string | null): Record<string, CourseProgressState> {
+  if (typeof window === "undefined") return {};
+  const userId = explicitUserId || getActiveUserId();
+  const result: Record<string, CourseProgressState> = {};
+
+  // If no user is active/logged in, do not return any private progress
+  if (!userId) {
+    return result;
+  }
+
+  const prefix = `${USER_STORAGE_PREFIX}${userId}_`;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        const slug = key.slice(prefix.length);
+        if (slug) {
+          result[slug] = getStoredProgress(slug, [], userId);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to read user-scoped course progress:", err);
+  }
+  return result;
+}
+
+/**
  * Save course progress to localStorage and broadcast change event.
  */
-export function saveProgress(courseSlug: string, state: CourseProgressState): void {
+export function saveProgress(
+  courseSlug: string,
+  state: CourseProgressState,
+  explicitUserId?: string | null
+): void {
   if (typeof window === "undefined" || !courseSlug) return;
 
+  const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    // Only persist progress for authenticated users; legacy prefix is read-only for migration
+    return;
+  }
+
   try {
-    const raw = JSON.stringify(state);
-    localStorage.setItem(getStorageKey(courseSlug), raw);
+    const now = Date.now();
+    const existing = getStoredProgress(courseSlug, [], userId);
+    const existingCompletedAt = existing.completedAt || (existing.isCourseCompleted ? existing.updatedAt : undefined);
+    const stateCompletedAt = state.completedAt || (state.isCourseCompleted ? (existingCompletedAt || now) : undefined);
+
+    const stateWithTimes: CourseProgressState = {
+      ...state,
+      updatedAt: state.updatedAt || now,
+      completedAt: state.isCourseCompleted ? stateCompletedAt : undefined,
+    };
+
+    const raw = JSON.stringify(stateWithTimes);
+    const storageKey = getStorageKey(courseSlug, userId);
+    localStorage.setItem(storageKey, raw);
 
     const frozenState = Object.freeze({
-      ...state,
-      completedLessons: Object.freeze(state.completedLessons || []) as unknown as string[],
+      ...stateWithTimes,
+      completedLessons: Object.freeze(stateWithTimes.completedLessons || []) as unknown as string[],
     });
-    snapshotCache.set(courseSlug, { raw, data: frozenState });
+
+    const cacheKey = `${userId || "anon"}_${courseSlug}`;
+    snapshotCache.set(cacheKey, { raw, data: frozenState });
 
     registerCourseLearner(courseSlug);
 
     window.dispatchEvent(
       new CustomEvent(PROGRESS_EVENT_NAME, {
-        detail: { courseSlug, state: frozenState },
+        detail: { courseSlug, state: frozenState, userId },
       })
     );
   } catch (err) {
@@ -113,9 +271,15 @@ export function saveProgress(courseSlug: string, state: CourseProgressState): vo
 export function markLessonCompleted(
   courseSlug: string,
   lessonSlug: string,
-  totalCourseLessons?: number
+  totalCourseLessons?: number,
+  explicitUserId?: string | null
 ): CourseProgressState {
-  const current = getStoredProgress(courseSlug);
+  const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const current = getStoredProgress(courseSlug, [], userId);
   const wasAlreadyCompleted = current.completedLessons.includes(lessonSlug);
   const wasCourseCompleted = Boolean(current.isCourseCompleted);
 
@@ -127,14 +291,17 @@ export function markLessonCompleted(
     Boolean(totalCourseLessons && totalCourseLessons > 0 && completedList.length >= totalCourseLessons) ||
     wasCourseCompleted;
 
+  const now = Date.now();
   const nextState: CourseProgressState = {
     ...current,
     completedLessons: completedList,
     lastWatchedSlug: lessonSlug,
     isCourseCompleted,
+    updatedAt: now,
+    completedAt: isCourseCompleted ? (current.completedAt || now) : undefined,
   };
 
-  saveProgress(courseSlug, nextState);
+  saveProgress(courseSlug, nextState, userId);
 
   if (!wasAlreadyCompleted) {
     posthog.capture("lesson_completed", {
@@ -142,6 +309,7 @@ export function markLessonCompleted(
       lesson_slug: lessonSlug,
       total_completed: completedList.length,
       is_course_completed: isCourseCompleted,
+      user_id: userId,
     });
   }
 
@@ -149,6 +317,7 @@ export function markLessonCompleted(
     posthog.capture("course_completed", {
       course_slug: courseSlug,
       total_lessons: totalCourseLessons,
+      user_id: userId,
     });
   }
 
@@ -161,9 +330,15 @@ export function markLessonCompleted(
 export function toggleLessonCompleted(
   courseSlug: string,
   lessonSlug: string,
-  totalCourseLessons?: number
+  totalCourseLessons?: number,
+  explicitUserId?: string | null
 ): CourseProgressState {
-  const current = getStoredProgress(courseSlug);
+  const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const current = getStoredProgress(courseSlug, [], userId);
   const completedSet = new Set(current.completedLessons);
   const wasCompleted = completedSet.has(lessonSlug);
   const wasCourseCompleted = Boolean(current.isCourseCompleted);
@@ -179,16 +354,18 @@ export function toggleLessonCompleted(
     totalCourseLessons && totalCourseLessons > 0 && completedList.length >= totalCourseLessons
   );
 
+  const now = Date.now();
   const nextState: CourseProgressState = {
     ...current,
     completedLessons: completedList,
     lastWatchedSlug: lessonSlug,
     isCourseCompleted,
+    updatedAt: now,
+    completedAt: isCourseCompleted ? (current.completedAt || now) : undefined,
   };
 
-  saveProgress(courseSlug, nextState);
+  saveProgress(courseSlug, nextState, userId);
 
-  // Emit completion events only when toggling TO completed (not when uncompleting)
   if (!wasCompleted) {
     posthog.capture("lesson_completed", {
       course_slug: courseSlug,
@@ -196,12 +373,14 @@ export function toggleLessonCompleted(
       total_completed: completedList.length,
       is_course_completed: isCourseCompleted,
       completed_via: "manual_toggle",
+      user_id: userId,
     });
 
     if (isCourseCompleted && !wasCourseCompleted) {
       posthog.capture("course_completed", {
         course_slug: courseSlug,
         total_lessons: totalCourseLessons,
+        user_id: userId,
       });
     }
   }
@@ -214,21 +393,31 @@ export function toggleLessonCompleted(
  */
 export function markEntireCourseCompleted(
   courseSlug: string,
-  allLessonSlugs: string[]
+  allLessonSlugs: string[],
+  explicitUserId?: string | null
 ): CourseProgressState {
-  const current = getStoredProgress(courseSlug);
+  const userId = explicitUserId || getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const current = getStoredProgress(courseSlug, [], userId);
+  const now = Date.now();
   const nextState: CourseProgressState = {
     ...current,
     completedLessons: Array.from(new Set([...current.completedLessons, ...allLessonSlugs])),
     isCourseCompleted: true,
+    updatedAt: now,
+    completedAt: current.completedAt || now,
   };
 
-  saveProgress(courseSlug, nextState);
+  saveProgress(courseSlug, nextState, userId);
 
   posthog.capture("course_completed", {
     course_slug: courseSlug,
     total_lessons: allLessonSlugs.length,
     completed_via: "complete_course_button",
+    user_id: userId,
   });
 
   return nextState;
@@ -241,14 +430,21 @@ const getServerSnapshot = () => DEFAULT_EMPTY_STATE;
  */
 export function useCourseProgress(
   courseSlug: string,
-  defaultPrecedingLessons: string[] = []
+  defaultPrecedingLessons: string[] = [],
+  explicitUserId?: string | null
 ): CourseProgressState {
+  const activeUser = explicitUserId || getActiveUserId();
+
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
       if (typeof window === "undefined" || !courseSlug) return () => {};
       const handler = (e: Event) => {
         const customEvent = e as CustomEvent<{ courseSlug: string; state: CourseProgressState }>;
-        if (!customEvent.detail || customEvent.detail.courseSlug === courseSlug) {
+        if (
+          !customEvent.detail ||
+          customEvent.detail.courseSlug === "*" ||
+          customEvent.detail.courseSlug === courseSlug
+        ) {
           callback();
         }
       };
@@ -264,9 +460,9 @@ export function useCourseProgress(
   const defaultKey = defaultPrecedingLessons.join(",");
 
   const getSnapshot = useMemo(() => {
-    return () => getStoredProgress(courseSlug, defaultPrecedingLessons);
+    return () => getStoredProgress(courseSlug, defaultPrecedingLessons, activeUser);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseSlug, defaultKey]);
+  }, [courseSlug, defaultKey, activeUser]);
 
   return useSyncExternalStore(
     subscribe,

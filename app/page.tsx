@@ -104,12 +104,18 @@ interface CourseItem {
 }
 
 function resolveCourseIcon(course: CourseItem) {
-  if (course.coverImage?.asset?.url) {
+  const imageUrl = course.coverImage?.asset?.url
+    ? urlFor(course.coverImage).width(80).height(80).url()
+    : course.slug
+    ? `https://picsum.photos/seed/vertex-course-${course.slug}/80/80`
+    : null;
+
+  if (imageUrl) {
     return (
       <div className="w-10 h-10 rounded-lg overflow-hidden relative shadow-sm border border-neutral-200/60 shrink-0">
         <Image
-          src={urlFor(course.coverImage).width(80).height(80).url()}
-          alt={course.coverImage.alt || course.title}
+          src={imageUrl}
+          alt={course.coverImage?.alt || course.title}
           width={40}
           height={40}
           className="w-full h-full object-cover"
@@ -216,6 +222,7 @@ export default async function HomePage() {
           links={[
             { label: "Courses", href: "/courses" },
             { label: "My Learning", href: "/my-learning" },
+            { label: "Design System", href: "/design-system" },
           ]}
           showActions={true}
           className="border-b border-[#EBE4DC] px-8 sm:px-12 bg-[#FAF7F2]"

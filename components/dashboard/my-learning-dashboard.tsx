@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import {
   ArrowRight,
   Bookmark,
@@ -97,6 +98,9 @@ export function MyLearningDashboard({
     () => "0"
   );
 
+  const { user } = useUser();
+  const userId = user?.id;
+
   const allAvailableCourses = useMemo(() => {
     if (allCourses && allCourses.length > 0) {
       return allCourses;
@@ -114,30 +118,49 @@ export function MyLearningDashboard({
   }, [allAvailableCourses, bookmarkedSlugs]);
 
   const progressMap = useMemo(() => {
-    // progressVersion dependency triggers recomputation when storage updates
+    // progressVersion and user dependency triggers recomputation when storage or user updates
     void progressVersion;
 
-    const map = new Map<string, { isCompleted: boolean; isInProgress: boolean; completedLessonsCount: number; totalLessons: number }>();
+    const map = new Map<
+      string,
+      {
+        isCompleted: boolean;
+        isInProgress: boolean;
+        completedLessonsCount: number;
+        totalLessons: number;
+        updatedAt: number;
+        completedAt: number;
+      }
+    >();
 
     allAvailableCourses.forEach((c) => {
       const allL = (c.modules || []).flatMap((m) => m.lessons || []).filter((l) => Boolean(l?.slug));
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
       
-      // Before client mount has completed, return empty progress to match SSR HTML exactly
-      const prog = hasMounted
-        ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [])
+      // Before client mount has completed or if user is unauthenticated, return empty progress to match SSR HTML exactly
+      const prog = hasMounted && userId
+        ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId)
         : { completedLessons: [], isCourseCompleted: false, lastWatchedSlug: undefined };
 
       const set = new Set(prog.completedLessons);
       const isComp = prog.isCourseCompleted || (allL.length > 0 && allL.every((l) => set.has(l.slug))) || (allL.length === 0 && set.size >= total);
       const inProg = !isComp && (set.size > 0 || Boolean(prog.lastWatchedSlug));
       const count = isComp ? total : Math.min(total, set.size);
+      const updatedAt = prog.updatedAt || 0;
+      const completedAt = isComp ? (prog.completedAt || prog.updatedAt || 0) : 0;
 
-      map.set(c.slug, { isCompleted: isComp, isInProgress: inProg, completedLessonsCount: count, totalLessons: total });
+      map.set(c.slug, {
+        isCompleted: isComp,
+        isInProgress: inProg,
+        completedLessonsCount: count,
+        totalLessons: total,
+        updatedAt,
+        completedAt,
+      });
     });
 
     return map;
-  }, [allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion]);
+  }, [allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion, userId]);
 
   // Derive enrolled / active courses from actual learner progress
   const { activeCourses, recommendedCoursesList } = useMemo(() => {
@@ -155,7 +178,7 @@ export function MyLearningDashboard({
 
     return {
       activeCourses: active,
-      recommendedCoursesList: recommended,
+      recommendedCoursesList: recommended.slice(0, 6),
     };
   }, [allAvailableCourses, progressMap]);
 
@@ -177,7 +200,7 @@ export function MyLearningDashboard({
         completedLessons += data.completedLessonsCount;
 
         // Calculate learned seconds based on completed lessons
-        const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || []);
+        const prog = getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId);
         const completedSlugs = new Set(prog.completedLessons);
         (c.modules || []).forEach((m) => {
           (m.lessons || []).forEach((l) => {
@@ -195,21 +218,62 @@ export function MyLearningDashboard({
       totalCompletedLessons: completedLessons,
       totalSecondsLearned: secondsLearned,
     };
-  }, [activeCourses, defaultPrecedingLessonsMap, progressMap]);
+  }, [activeCourses, defaultPrecedingLessonsMap, progressMap, userId]);
 
   // Filtered course items
   const filteredCourses = useMemo(() => {
     if (filter === "all") return activeCourses;
     if (filter === "bookmarked") return bookmarkedCourses;
-    return activeCourses.filter((c) => {
-      const data = progressMap.get(c.slug);
-      if (filter === "completed") return data?.isCompleted;
-      if (filter === "in-progress") return !data?.isCompleted;
-      return true;
-    });
+    if (filter === "completed") {
+      return activeCourses
+        .filter((c) => progressMap.get(c.slug)?.isCompleted)
+        .sort((a, b) => {
+          const compA = progressMap.get(a.slug)?.completedAt || progressMap.get(a.slug)?.updatedAt || 0;
+          const compB = progressMap.get(b.slug)?.completedAt || progressMap.get(b.slug)?.updatedAt || 0;
+          return compB - compA;
+        });
+    }
+    if (filter === "in-progress") {
+      return activeCourses.filter((c) => !progressMap.get(c.slug)?.isCompleted);
+    }
+    return activeCourses;
   }, [activeCourses, filter, progressMap, bookmarkedCourses]);
 
-  const primaryCourse = activeCourses[0] || null;
+  // Determine the primary course for the hero banner dynamically:
+  // 1. If in-progress courses exist, pick the in-progress course with the latest activity (highest updatedAt)
+  // 2. If completed courses exist (or all are completed), pick the most recently completed course (highest completedAt)
+  const primaryCourse = useMemo(() => {
+    if (activeCourses.length === 0) return null;
+
+    const inProgressList = activeCourses.filter((c) => {
+      const data = progressMap.get(c.slug);
+      return data && data.isInProgress;
+    });
+
+    if (inProgressList.length > 0) {
+      return [...inProgressList].sort((a, b) => {
+        const timeA = progressMap.get(a.slug)?.updatedAt || 0;
+        const timeB = progressMap.get(b.slug)?.updatedAt || 0;
+        return timeB - timeA;
+      })[0];
+    }
+
+    const completedList = activeCourses.filter((c) => {
+      const data = progressMap.get(c.slug);
+      return data && data.isCompleted;
+    });
+
+    if (completedList.length > 0) {
+      return [...completedList].sort((a, b) => {
+        const timeA = progressMap.get(a.slug)?.completedAt || progressMap.get(a.slug)?.updatedAt || 0;
+        const timeB = progressMap.get(b.slug)?.completedAt || progressMap.get(b.slug)?.updatedAt || 0;
+        return timeB - timeA;
+      })[0];
+    }
+
+    return activeCourses[0] || null;
+  }, [activeCourses, progressMap]);
+
   const primaryDefaults = primaryCourse ? defaultPrecedingLessonsMap[primaryCourse.slug] || [] : [];
 
   return (

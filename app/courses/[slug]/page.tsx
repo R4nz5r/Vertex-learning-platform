@@ -174,6 +174,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
           links={[
             { label: "Courses", href: "/courses" },
             { label: "My Learning", href: "/my-learning" },
+            { label: "Design System", href: "/design-system" },
           ]}
           showActions={true}
           className="border-b border-[#EBE4DC] px-8 sm:px-12 bg-[#FAF7F2]"

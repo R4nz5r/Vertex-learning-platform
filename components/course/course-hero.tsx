@@ -114,23 +114,41 @@ export function CourseHero({
     level ?? undefined
   );
 
-  // Build Sanity image URL if available
-  const imageUrl = coverImage?.asset?.url
-    ? urlFor(coverImage).width(800).height(800).fit("crop").url()
+  // Build Sanity image URL if available, or fall back to deterministic Picsum seed
+  const fallbackUrl = courseSlug
+    ? `https://picsum.photos/seed/vertex-course-${courseSlug}/800/800`
     : null;
+  const initialImageUrl = coverImage?.asset?.url
+    ? urlFor(coverImage).width(800).height(800).fit("crop").url()
+    : fallbackUrl;
+
+  const [currentSrc, setCurrentSrc] = React.useState<string | null>(initialImageUrl);
+
+  React.useEffect(() => {
+    setCurrentSrc(initialImageUrl);
+  }, [initialImageUrl]);
+
+  const handleImageError = () => {
+    if (currentSrc !== fallbackUrl && fallbackUrl) {
+      setCurrentSrc(fallbackUrl);
+    } else {
+      setCurrentSrc(null);
+    }
+  };
 
   return (
     <section className="w-full flex flex-col md:flex-row items-center md:items-start gap-8 lg:gap-12 mb-12 lg:mb-14">
       {/* ── Left: Course Cover Thumbnail ── */}
       <div className="w-full max-w-[240px] sm:max-w-[270px] aspect-square rounded-2xl bg-black border border-neutral-800 shadow-[0_12px_36px_rgba(0,0,0,0.18)] overflow-hidden shrink-0 flex items-center justify-center relative">
-        {imageUrl ? (
+        {currentSrc ? (
           <Image
-            src={imageUrl}
+            src={currentSrc}
             alt={coverImage?.alt || title}
             fill
             sizes="(max-width: 768px) 240px, 270px"
             className="object-cover"
             priority
+            onError={handleImageError}
           />
         ) : (
           <NextjsFallbackCover />
