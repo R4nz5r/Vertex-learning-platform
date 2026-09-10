@@ -239,6 +239,7 @@ export default async function MyLearningPage() {
           links={[
             { label: "Courses", href: "/courses" },
             { label: "My Learning", href: "/my-learning", active: true },
+            { label: "Design System", href: "/design-system" },
           ]}
           showActions={true}
           className="border-b border-[#EBE4DC] px-4 sm:px-8 lg:px-12 bg-[#FAF7F2]"

@@ -125,6 +125,12 @@ export default async function LessonDetailPage({
       thumbnailUrl = null;
     }
   }
+  if (!thumbnailUrl && lesson.videoUrl) {
+    const ytMatch = lesson.videoUrl.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch && ytMatch[1]) {
+      thumbnailUrl = `https://i.ytimg.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    }
+  }
 
   let courseCoverUrl: string | null = null;
   if (course.coverImage?.asset) {
@@ -133,6 +139,9 @@ export default async function LessonDetailPage({
     } catch {
       courseCoverUrl = null;
     }
+  }
+  if (!courseCoverUrl && course.slug) {
+    courseCoverUrl = `https://picsum.photos/seed/vertex-course-${course.slug}/160/160`;
   }
 
   // Server-side analytics event capture
@@ -170,6 +179,7 @@ export default async function LessonDetailPage({
           links={[
             { label: "Courses", href: "/courses" },
             { label: "My Learning", href: "/my-learning" },
+            { label: "Design System", href: "/design-system" },
           ]}
           showActions={true}
           className="border-b border-[#EBE4DC] px-8 sm:px-12 bg-[#FAF7F2]"

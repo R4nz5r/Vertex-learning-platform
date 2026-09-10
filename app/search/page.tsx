@@ -19,6 +19,7 @@ export default function SearchPage() {
           links={[
             { label: "Courses", href: "/courses" },
             { label: "My Learning", href: "/my-learning" },
+            { label: "Design System", href: "/design-system" },
           ]}
           showActions={true}
         />

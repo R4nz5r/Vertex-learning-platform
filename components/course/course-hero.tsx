@@ -114,9 +114,11 @@ export function CourseHero({
     level ?? undefined
   );
 
-  // Build Sanity image URL if available
+  // Build Sanity image URL if available, or fall back to deterministic Picsum seed
   const imageUrl = coverImage?.asset?.url
     ? urlFor(coverImage).width(800).height(800).fit("crop").url()
+    : courseSlug
+    ? `https://picsum.photos/seed/vertex-course-${courseSlug}/800/800`
     : null;
 
   return (
