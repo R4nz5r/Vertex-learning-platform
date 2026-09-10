@@ -79,9 +79,11 @@ async function testAssetUpload() {
         } else {
           const deleteJson = await deleteRes.json()
           console.warn(`⚠️ Warning: Failed to clean up test asset ${assetId}:`, deleteJson)
+          process.exitCode = 1
         }
       } catch (cleanupErr) {
         console.warn(`⚠️ Warning: Error during test asset cleanup:`, cleanupErr.message)
+        process.exitCode = 1
       }
     }
   }

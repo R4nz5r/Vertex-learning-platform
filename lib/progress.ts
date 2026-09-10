@@ -131,9 +131,18 @@ export function getStoredProgress(
     return DEFAULT_EMPTY_STATE;
   }
 
-  const userId = explicitUserId || getActiveUserId();
+  // If explicitUserId is explicitly null, treat as absent user and return empty state
+  if (explicitUserId === null) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
+  const userId = explicitUserId !== undefined ? explicitUserId : getActiveUserId();
+  if (!userId) {
+    return DEFAULT_EMPTY_STATE;
+  }
+
   const storageKey = getStorageKey(courseSlug, userId);
-  const cacheKey = `${userId || "anon"}_${courseSlug}`;
+  const cacheKey = `${userId}_${courseSlug}`;
 
   try {
     const raw = localStorage.getItem(storageKey);

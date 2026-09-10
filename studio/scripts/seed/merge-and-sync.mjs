@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { validateReferences } from './build-ndjson.mjs'
+import { validateReferences, validateHierarchy } from './build-ndjson.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../../..')
@@ -43,7 +43,7 @@ async function mergeAndSync(targetRevision) {
 
   let originalNdjson
   try {
-    originalNdjson = execSync(`git show ${sanitizedRef}:studio/scripts/seed/seed.ndjson`, {
+    originalNdjson = execFileSync('git', ['show', `${sanitizedRef}:studio/scripts/seed/seed.ndjson`], {
       cwd: rootDir,
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024,
@@ -97,6 +97,17 @@ async function mergeAndSync(targetRevision) {
   }
   console.log('✅ All references in merged dataset verified successfully.')
 
+  console.log('Validating hierarchy in merged documents...')
+  const hierarchyResult = validateHierarchy(mergedDocs, {
+    expectedModulesPerCourse: 4,
+    expectedLessonsPerModule: 3,
+  })
+  if (!hierarchyResult.valid) {
+    console.error(`❌ Merge failed with ${hierarchyResult.hierarchyErrors} hierarchy errors (courses must have 4 modules and modules must have 3 lessons). Aborting write and upload.`)
+    process.exit(1)
+  }
+  console.log('✅ All course and module hierarchies verified successfully.')
+
   // Write merged NDJSON
   const mergedNdjson = mergedDocs.map(d => JSON.stringify(d)).join('\n') + '\n'
   fs.writeFileSync(seedFilePath, mergedNdjson, 'utf-8')
@@ -109,7 +120,14 @@ async function mergeAndSync(targetRevision) {
 
   for (let i = 0; i < mergedDocs.length; i += batchSize) {
     const batch = mergedDocs.slice(i, i + batchSize)
-    const mutations = batch.map(doc => ({ createOrReplace: doc }))
+    // Field-level patch mutations: createIfNotExists for initial insertion,
+    // followed by patch.set to update specified fields while retaining existing fields absent from seed payload
+    const mutations = []
+    for (const doc of batch) {
+      const { _id, _type, ...fields } = doc
+      mutations.push({ createIfNotExists: doc })
+      mutations.push({ patch: { id: _id, set: fields } })
+    }
 
     const res = await fetch(mutateUrl, {
       method: 'POST',

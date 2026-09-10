@@ -38,8 +38,9 @@ Ensure that `MyLearningDashboard` maintains strict user isolation across Clerk a
 2. **Memoization Dependency Accuracy**:
    - Add `userId` to `progressMap`'s dependency array: `[allAvailableCourses, defaultPrecedingLessonsMap, hasMounted, progressVersion, userId]`.
    - Add `userId` to `aggregate-statistics`'s dependency array: `[activeCourses, defaultPrecedingLessonsMap, progressMap, userId]`.
-3. **Explicit User ID in All Reads**:
-   - In `aggregate-statistics`, pass `userId` to `getStoredProgress`: `getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId)`.
+3. **Explicit User ID in All Reads & Absent User Guard**:
+   - In `aggregate-statistics` and `progressMap`, pass `userId` to `getStoredProgress`: `getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId)`.
+   - If `userId` is absent/undefined during account transitions, return an empty progress state rather than falling back to `getActiveUserId()` or anonymous storage.
    - This prevents race conditions or reading stale active user data during Clerk user transitions.
 
 ---

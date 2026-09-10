@@ -32,12 +32,10 @@ Ensure that seeding and sync scripts correctly load and prioritize `SANITY_API_W
 
 ## Decisions and Assumptions
 
-1. **Independent Token Accumulation**:
-   - In `import-seed.mjs` and `safe-import.mjs`, parse `writeToken` and `readToken` into separate variables:
-     - `writeToken = process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_API_TOKEN || ''`
-     - `readToken = process.env.SANITY_API_READ_TOKEN || ''`
-     - When inspecting `.env.local`, set `writeToken` on `SANITY_API_WRITE_TOKEN=` lines and `readToken` on `SANITY_API_READ_TOKEN=` lines.
-     - Select `const token = writeToken || readToken`. Under no circumstances can `readToken` overwrite `writeToken`.
+1. **Independent Token Accumulation & Write Token Requirement**:
+   - In `import-seed.mjs` and `safe-import.mjs`, parse `writeToken` using `hasProcessWriteToken` to preserve process env tokens over `.env.local`.
+   - Mutation scripts require a resolved `writeToken`; if absent, they fail with `process.exit(1)` and do not fall back to `readToken` for mutations.
+   - Select `const token = writeToken`. Under no circumstances can `readToken` be used for mutation requests.
 2. **Strict Write Token Requirement in `merge-and-sync.mjs`**:
    - Parse `SANITY_API_WRITE_TOKEN` from `process.env` and `.env.local`.
    - If `!token`, log an explicit error `❌ SANITY_API_WRITE_TOKEN is required for mutations in merge-and-sync.mjs.` and call `process.exit(1)`.

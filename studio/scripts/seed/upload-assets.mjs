@@ -62,6 +62,27 @@ async function uploadImageToSanity(imageUrl, filename) {
   }
 }
 
+async function deleteUnreferencedAsset(assetId) {
+  try {
+    const deleteUrl = `https://${projectId}.api.sanity.io/v${apiVersion}/data/mutate/${dataset}`
+    const deleteRes = await fetch(deleteUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        mutations: [{ delete: { id: assetId } }],
+      }),
+    })
+    if (deleteRes.ok) {
+      console.log(`  ✓ Cleaned up unreferenced asset ${assetId}`)
+    }
+  } catch (err) {
+    console.warn(`  ⚠️ Failed to cleanup unreferenced asset ${assetId}:`, err.message)
+  }
+}
+
 async function uploadAllAssets() {
   console.log('🚀 Starting automated asset ingestion into Sanity...\n')
 
@@ -125,10 +146,61 @@ async function uploadAllAssets() {
       const patchJson = await patchRes.json()
       if (patchRes.ok) {
         console.log(`  ✓ Linked asset ${assetId} to course "${course.title}"`)
-      } else if (patchRes.status === 409) {
-        console.warn(`  ⚠️ Revision conflict (409) patching course "${course.title}". Skipping to avoid overwriting concurrent edits.`)
       } else {
-        console.warn(`  ⚠️ Failed to patch course "${course.title}":`, patchJson)
+        if (patchRes.status === 409) {
+          console.warn(`  ⚠️ Revision conflict (409) patching course "${course.title}". Re-reading document...`)
+        } else {
+          console.warn(`  ⚠️ Failed to patch course "${course.title}":`, patchJson)
+        }
+
+        // Re-read document to check if coverImage was populated concurrently or retry if still empty
+        try {
+          const checkRes = await fetch(
+            `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?query=${encodeURIComponent(`*[_id == "${course._id}"][0]{ _rev, coverImage }`)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          const checkData = await checkRes.json()
+          const latest = checkData.result
+          if (latest && !latest.coverImage?.asset?._ref && latest._rev) {
+            console.log(`  Retrying patch for course "${course.title}" with latest revision ${latest._rev}...`)
+            const retryRes = await fetch(`https://${projectId}.api.sanity.io/v${apiVersion}/data/mutate/${dataset}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                mutations: [
+                  {
+                    patch: {
+                      id: course._id,
+                      ifRevisionID: latest._rev,
+                      set: {
+                        coverImage: {
+                          _type: 'image',
+                          asset: { _type: 'reference', _ref: assetId },
+                          alt: `Cover image for ${course.title}`,
+                        },
+                      },
+                    },
+                  },
+                ],
+              }),
+            })
+            if (retryRes.ok) {
+              console.log(`  ✓ Successfully linked asset ${assetId} to course "${course.title}" on retry.`)
+            } else {
+              console.warn(`  ⚠️ Retry failed for course "${course.title}". Cleaning up asset ${assetId}...`)
+              await deleteUnreferencedAsset(assetId)
+            }
+          } else {
+            console.log(`  Course "${course.title}" cover already populated or missing. Cleaning up orphaned asset ${assetId}...`)
+            await deleteUnreferencedAsset(assetId)
+          }
+        } catch (e) {
+          console.warn(`  ⚠️ Error reconciling course "${course.title}":`, e.message)
+          await deleteUnreferencedAsset(assetId)
+        }
       }
     }
   }
@@ -193,10 +265,61 @@ async function uploadAllAssets() {
       const patchJson = await patchRes.json()
       if (patchRes.ok) {
         console.log(`  ✓ Linked asset ${assetId} to instructor "${inst.name}"`)
-      } else if (patchRes.status === 409) {
-        console.warn(`  ⚠️ Revision conflict (409) patching instructor "${inst.name}". Skipping to avoid overwriting concurrent edits.`)
       } else {
-        console.warn(`  ⚠️ Failed to patch instructor "${inst.name}":`, patchJson)
+        if (patchRes.status === 409) {
+          console.warn(`  ⚠️ Revision conflict (409) patching instructor "${inst.name}". Re-reading document...`)
+        } else {
+          console.warn(`  ⚠️ Failed to patch instructor "${inst.name}":`, patchJson)
+        }
+
+        // Re-read document to check if photo was populated concurrently or retry if still empty
+        try {
+          const checkRes = await fetch(
+            `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?query=${encodeURIComponent(`*[_id == "${inst._id}"][0]{ _rev, photo }`)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          const checkData = await checkRes.json()
+          const latest = checkData.result
+          if (latest && !latest.photo?.asset?._ref && latest._rev) {
+            console.log(`  Retrying patch for instructor "${inst.name}" with latest revision ${latest._rev}...`)
+            const retryRes = await fetch(`https://${projectId}.api.sanity.io/v${apiVersion}/data/mutate/${dataset}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                mutations: [
+                  {
+                    patch: {
+                      id: inst._id,
+                      ifRevisionID: latest._rev,
+                      set: {
+                        photo: {
+                          _type: 'image',
+                          asset: { _type: 'reference', _ref: assetId },
+                          alt: `Portrait of ${inst.name}`,
+                        },
+                      },
+                    },
+                  },
+                ],
+              }),
+            })
+            if (retryRes.ok) {
+              console.log(`  ✓ Successfully linked asset ${assetId} to instructor "${inst.name}" on retry.`)
+            } else {
+              console.warn(`  ⚠️ Retry failed for instructor "${inst.name}". Cleaning up asset ${assetId}...`)
+              await deleteUnreferencedAsset(assetId)
+            }
+          } else {
+            console.log(`  Instructor "${inst.name}" photo already populated or missing. Cleaning up orphaned asset ${assetId}...`)
+            await deleteUnreferencedAsset(assetId)
+          }
+        } catch (e) {
+          console.warn(`  ⚠️ Error reconciling instructor "${inst.name}":`, e.message)
+          await deleteUnreferencedAsset(assetId)
+        }
       }
     }
   }

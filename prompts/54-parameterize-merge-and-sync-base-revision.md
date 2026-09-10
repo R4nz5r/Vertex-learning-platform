@@ -31,9 +31,10 @@ Update `studio/scripts/seed/merge-and-sync.mjs` to read from an explicit, parame
 1. **Explicit Revision Parameter**:
    - Accept the revision as `process.argv[2] || process.env.BASE_REVISION`.
    - If not provided, output usage and exit with `process.exit(1)`.
-2. **Safe Git Execution**:
+2. **Safe Git Execution via execFileSync**:
    - Trim and sanitize the revision string.
-   - Wrap `execSync` in a try/catch block that reports descriptive errors and exits with code 1 if git fails to find the revision or object.
+   - Use `execFileSync('git', ['show', ...])` passing arguments separately to prevent shell interpretation.
+   - Wrap in a try/catch block that reports descriptive errors and exits with code 1 if git fails to find the revision or object.
 3. **Distinct Source Verification**:
    - Compare `originalNdjson.trim() === currentNdjson.trim()`.
    - If identical, fail with `process.exit(1)` and an explicit error indicating that the restoration source must be distinct from the current seed file.

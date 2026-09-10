@@ -54,7 +54,10 @@ export function validateReferences(docs) {
         for (const mod of doc.modules) {
           if (Array.isArray(mod.lessons)) {
             for (const ref of mod.lessons) {
-              if (ref && ref._ref && !idMap.has(ref._ref)) {
+              if (!ref || typeof ref !== 'object' || typeof ref._ref !== 'string' || ref._ref.trim() === '') {
+                console.error(`❌ Module "${mod.title || 'untitled'}" in course "${doc.title || doc._id}" contains an invalid or empty lesson reference.`)
+                missingRefs++
+              } else if (!idMap.has(ref._ref)) {
                 console.error(`❌ Module "${mod.title || 'untitled'}" in course "${doc.title || doc._id}" references missing lesson: ${ref._ref}`)
                 missingRefs++
               }
@@ -73,6 +76,58 @@ export function validateReferences(docs) {
 }
 
 /**
+ * Validate structural hierarchy invariants across courses, modules, and lessons.
+ *
+ * @param {Array<object>} docs
+ * @param {object} [options]
+ * @param {number} [options.expectedCourses]
+ * @param {number} [options.expectedModulesPerCourse=4]
+ * @param {number} [options.expectedLessonsPerModule=3]
+ * @returns {{ valid: boolean, hierarchyErrors: number }}
+ */
+export function validateHierarchy(docs, options = {}) {
+  const expectedCourses = options.expectedCourses
+  const expectedModulesPerCourse = options.expectedModulesPerCourse ?? 4
+  const expectedLessonsPerModule = options.expectedLessonsPerModule ?? 3
+
+  let hierarchyErrors = 0
+  const courses = docs.filter((d) => d && d._type === 'course')
+  const lessons = docs.filter((d) => d && d._type === 'lesson')
+
+  if (typeof expectedCourses === 'number' && courses.length !== expectedCourses) {
+    console.error(`❌ Course count mismatch: expected ${expectedCourses}, found ${courses.length}`)
+    hierarchyErrors++
+  }
+
+  if (typeof expectedCourses === 'number') {
+    const expectedLessons = expectedCourses * expectedModulesPerCourse * expectedLessonsPerModule
+    if (lessons.length !== expectedLessons) {
+      console.error(`❌ Lesson count mismatch: expected ${expectedLessons}, found ${lessons.length}`)
+      hierarchyErrors++
+    }
+  }
+
+  for (const doc of courses) {
+    if (!Array.isArray(doc.modules) || doc.modules.length !== expectedModulesPerCourse) {
+      console.error(`❌ Course "${doc.title || doc._id}" must have exactly ${expectedModulesPerCourse} modules (found ${doc.modules?.length || 0})`)
+      hierarchyErrors++
+    } else {
+      for (const mod of doc.modules) {
+        if (!Array.isArray(mod.lessons) || mod.lessons.length !== expectedLessonsPerModule) {
+          console.error(`❌ Module "${mod.title || 'untitled'}" in course "${doc.title || doc._id}" must have exactly ${expectedLessonsPerModule} lessons (found ${mod.lessons?.length || 0})`)
+          hierarchyErrors++
+        }
+      }
+    }
+  }
+
+  return {
+    valid: hierarchyErrors === 0,
+    hierarchyErrors,
+  }
+}
+
+/**
  * Validate and build / verify the NDJSON dataset
  */
 export function buildNdjson() {
@@ -81,45 +136,14 @@ export function buildNdjson() {
   const docs = loadSeedDocuments()
 
   const refResult = validateReferences(docs)
+  const hierarchyResult = validateHierarchy(docs, {
+    expectedCourses: 20,
+    expectedModulesPerCourse: 4,
+    expectedLessonsPerModule: 3,
+  })
 
-  let hierarchyErrors = 0
-
-  const EXPECTED_COURSES = 20
-  const EXPECTED_MODULES_PER_COURSE = 4
-  const EXPECTED_LESSONS_PER_MODULE = 3
-  const EXPECTED_LESSONS = EXPECTED_COURSES * EXPECTED_MODULES_PER_COURSE * EXPECTED_LESSONS_PER_MODULE
-
-  const courses = docs.filter((d) => d._type === 'course')
-  const lessons = docs.filter((d) => d._type === 'lesson')
-
-  if (courses.length !== EXPECTED_COURSES) {
-    console.error(`❌ Course count mismatch: expected ${EXPECTED_COURSES}, found ${courses.length}`)
-    hierarchyErrors++
-  }
-
-  if (lessons.length !== EXPECTED_LESSONS) {
-    console.error(`❌ Lesson count mismatch: expected ${EXPECTED_LESSONS}, found ${lessons.length}`)
-    hierarchyErrors++
-  }
-
-  for (const doc of docs) {
-    if (doc._type === 'course') {
-      if (!Array.isArray(doc.modules) || doc.modules.length !== EXPECTED_MODULES_PER_COURSE) {
-        console.error(`❌ Course "${doc.title}" must have exactly ${EXPECTED_MODULES_PER_COURSE} modules (found ${doc.modules?.length || 0})`)
-        hierarchyErrors++
-      } else {
-        for (const mod of doc.modules) {
-          if (!Array.isArray(mod.lessons) || mod.lessons.length !== EXPECTED_LESSONS_PER_MODULE) {
-            console.error(`❌ Module "${mod.title}" in course "${doc.title}" must have exactly ${EXPECTED_LESSONS_PER_MODULE} lessons (found ${mod.lessons?.length || 0})`)
-            hierarchyErrors++
-          }
-        }
-      }
-    }
-  }
-
-  if (!refResult.valid || hierarchyErrors > 0) {
-    console.error(`❌ Build failed with ${refResult.missingRefs} missing references, ${refResult.idValidationErrors} _id errors, and ${hierarchyErrors} hierarchy errors.`)
+  if (!refResult.valid || !hierarchyResult.valid) {
+    console.error(`❌ Build failed with ${refResult.missingRefs} missing references, ${refResult.idValidationErrors} _id errors, and ${hierarchyResult.hierarchyErrors} hierarchy errors.`)
     process.exit(1)
   }
 

@@ -39,16 +39,16 @@ Seed the Sanity `production` dataset with realistic, high-grade curriculum conte
    - 10 Courses: each course document contains 4 ordered embedded `module` objects.
    - Each `module` contains an array of 3 `reference` objects pointing to `lesson` documents.
    - 4 modules × 3 lessons = 12 lessons per course.
-   - 10 courses × 12 lessons = 120 unique lessons.
+   - 20 courses × 12 lessons = 240 unique lessons across 80 modules.
    - A module equals the sum of its lessons; a course equals the sum of its modules.
 2. **Deterministic Document IDs**:
     - `category.<slug>`
     - `instructor.<slug>`
     - `lesson.<course-slug>-<lesson-slug>`
     - `course.<slug>`
-    - Allows safe, idempotent imports via `npm run seed:import` (safe-import runner using field-level patches).
+    - Allows safe, idempotent imports via `npm run seed:import` (safe-import runner using field-level patches and strictly requiring a resolved write token).
 3. **Unique YouTube Video URLs**:
-    - 120 unique YouTube video IDs curated and mapped to each lesson's specific concepts (e.g. Go goroutines/channels/gRPC, AWS Lambda/API Gateway/DynamoDB, CSS grid/subgrid/container queries, Supabase auth/realtime/RLS, Rust ownership/tokio/wasm, GraphQL schema/resolvers/federation, AI code generation/LLM testing/evals, Playwright/Vitest/mocking, Ecommerce checkout/inventory/webhooks, Airflow/Kafka/dbt pipelines).
+    - 240 unique YouTube video IDs curated and mapped to each lesson's specific concepts.
 4. **Lorem Picsum Seeded Images**:
     - Course covers: `https://picsum.photos/seed/vertex-course-{slug}/1600/900`
     - Instructor photos: `https://picsum.photos/seed/vertex-instructor-{slug}/800/800`
@@ -59,37 +59,37 @@ Seed the Sanity `production` dataset with realistic, high-grade curriculum conte
 ## Files to Touch / Create
 
 ```text
-studio/scripts/seed/generate-seed.mjs      [NEW] Comprehensive data generation script producing the complete 120-lesson dataset
-studio/scripts/seed/seed.ndjson           [MODIFY] Replaced with the complete 140+ document dataset (10 courses, 120 lessons, categories, instructors)
+studio/scripts/seed/generate-seed.mjs      [NEW] Comprehensive data generation script producing the complete 240-lesson dataset
+studio/scripts/seed/seed.ndjson           [MODIFY] Replaced with the complete 280+ document dataset (20 courses, 240 lessons, categories, instructors)
 studio/scripts/seed/build-ndjson.mjs      [VERIFY / RUN] Reference validation and formatting check
 ```
 
 ## Security Considerations
 
 - No secrets or private tokens are contained in the dataset.
-- The dataset import uses Sanity CLI authenticated with appropriate permissions.
+- The dataset import requires a non-empty resolved write token (`SANITY_API_WRITE_TOKEN` or `SANITY_API_TOKEN`). A read token fallback is strictly disallowed for mutations.
 
 ## Acceptance Criteria
 
-1. `studio/scripts/seed/seed.ndjson` contains exactly the 10 requested course topics and 120 lessons.
-2. All 120 lessons have unique YouTube video URLs with valid durations and realistic Portable Text notes.
-3. Strict structural hierarchy is validated: 10 courses, each having 4 modules, each having 3 lessons (40 modules, 120 lessons total).
+1. `studio/scripts/seed/seed.ndjson` contains exactly 20 courses and 240 lessons.
+2. All 240 lessons have unique YouTube video URLs with valid durations and realistic Portable Text notes.
+3. Strict structural hierarchy is validated: 20 courses, each having 4 modules, each having 3 lessons (80 modules, 240 lessons total).
 4. Reference validation passes with 0 missing references via `npm run seed:build`.
-5. The dataset is successfully imported into Sanity `production` with `npm run seed:import`.
-6. GROQ query confirms 10 courses and 120 lessons in the Sanity dataset.
+5. The dataset is successfully imported into Sanity `production` with `npm run seed:import` using a verified write token.
+6. GROQ query confirms 20 courses and 240 lessons in the Sanity dataset.
 
 ## Checks to Run
 
 ```bash
 cd f:\Nextjs\vertex\studio
 npm run seed:build
-npm run seed:import
+npm run seed:import # Requires SANITY_API_WRITE_TOKEN; fails if missing or only read-token is configured
 npx sanity documents query "{'categories': count(*[_type == 'category']), 'instructors': count(*[_type == 'instructor']), 'courses': count(*[_type == 'course']), 'lessons': count(*[_type == 'lesson'])}"
 ```
 
 ## Manual Test Steps
 
 1. Run `npm run seed:build` in `studio/` to verify reference graph consistency and lack of broken refs or duplicate IDs.
-2. Import the dataset to Sanity `production` via `npm run seed:import` (`safe-import.mjs`).
-3. Query the document counts via GROQ to confirm 10 courses and 120 lessons.
+2. Import the dataset to Sanity `production` via `npm run seed:import` (`safe-import.mjs`), ensuring `SANITY_API_WRITE_TOKEN` is present.
+3. Query the document counts via GROQ to confirm 20 courses and 240 lessons.
 4. Verify the web application catalog at `http://localhost:3000/courses` to inspect the rendered courses and lesson hierarchy.

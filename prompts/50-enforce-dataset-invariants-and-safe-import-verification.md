@@ -47,9 +47,9 @@ Resolve the dataset baseline mismatch and enforce strict structural hierarchy in
 3. **Safe-Import Verification & Hard Failure**:
    - In `safe-import.mjs`:
      - Validate hierarchy invariants of input documents prior to sending mutations.
-     - Extract pre-import counts (`courses`, `lessons`, `instructors`, `categories`).
-     - After import, query live counts from Sanity via GROQ.
-     - Compare live counts: if `live.courses < pre.courses` or `live.lessons < pre.lessons`, log explicit errors and terminate with `process.exit(1)`.
+      - Extract pre-import counts (`courses`, `lessons`, `instructors`, `categories`).
+      - After import, query live counts from Sanity via GROQ.
+      - Compare live counts: enforce canonical minimums (at least 20 courses and 240 lessons) separately from non-deletion checks (`live.courses >= pre.courses`, `live.lessons >= pre.lessons`, etc.); fail with explicit errors and `process.exit(1)` if any check fails.
 
 ---
 

@@ -137,8 +137,8 @@ export function MyLearningDashboard({
       const allL = (c.modules || []).flatMap((m) => m.lessons || []).filter((l) => Boolean(l?.slug));
       const total = allL.length > 0 ? allL.length : (c.lessonCount || 1);
       
-      // Before client mount has completed, return empty progress to match SSR HTML exactly
-      const prog = hasMounted
+      // Before client mount has completed or if user is unauthenticated, return empty progress to match SSR HTML exactly
+      const prog = hasMounted && userId
         ? getStoredProgress(c.slug, defaultPrecedingLessonsMap[c.slug] || [], userId)
         : { completedLessons: [], isCourseCompleted: false, lastWatchedSlug: undefined };
 

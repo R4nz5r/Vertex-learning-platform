@@ -60,7 +60,7 @@ prompts/42-non-destructive-seed-and-import-safeguard.md   [MODIFY] Correct addit
 
 ## Requirements
 
-1. Existing documents in Sanity must retain fields absent from seed payloads when running `safe-import.mjs`.
+1. Existing documents in Sanity must retain fields absent from seed payloads when running `safe-import.mjs` and `merge-and-sync.mjs` by using `createIfNotExists` and field-level `patch.set`.
 2. Do not use wholesale `createOrReplace` for existing document updates.
 3. Remove claims that `sanity dataset import ... --replace` or `createOrReplace` preserve existing fields.
 4. Keep changes minimal and validate syntax and execution.
