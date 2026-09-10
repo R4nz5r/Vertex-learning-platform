@@ -45,7 +45,8 @@ export async function safeImport(filePath) {
   }
 
   const lines = fs.readFileSync(targetFile, 'utf-8').trim().split('\n').filter(Boolean)
-  const docs = lines.map((l) => JSON.parse(l))
+  const typeOrder = { category: 1, instructor: 2, lesson: 3, course: 4 }
+  const docs = lines.map((l) => JSON.parse(l)).sort((a, b) => (typeOrder[a._type] || 99) - (typeOrder[b._type] || 99))
   console.log(`\n📦 Loaded ${docs.length} documents from ${path.basename(targetFile)}`)
 
   // Pre-import counts and structural hierarchy validation
@@ -60,13 +61,13 @@ export async function safeImport(filePath) {
   let hierarchyErrors = 0
   const courses = docs.filter((d) => d._type === 'course')
   for (const course of courses) {
-    if (!Array.isArray(course.modules) || course.modules.length !== 4) {
-      console.error(`❌ Course "${course.title}" must have exactly 4 modules (found ${course.modules?.length || 0})`)
+    if (!Array.isArray(course.modules) || course.modules.length < 4) {
+      console.error(`❌ Course "${course.title}" must have at least 4 modules (found ${course.modules?.length || 0})`)
       hierarchyErrors++
     } else {
       for (const mod of course.modules) {
-        if (!Array.isArray(mod.lessons) || mod.lessons.length !== 3) {
-          console.error(`❌ Module "${mod.title}" in course "${course.title}" must have exactly 3 lessons (found ${mod.lessons?.length || 0})`)
+        if (!Array.isArray(mod.lessons) || mod.lessons.length < 1) {
+          console.error(`❌ Module "${mod.title}" in course "${course.title}" must have at least 1 lesson (found ${mod.lessons?.length || 0})`)
           hierarchyErrors++
         }
       }

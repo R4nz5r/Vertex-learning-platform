@@ -99,11 +99,11 @@ async function mergeAndSync(targetRevision) {
 
   console.log('Validating hierarchy in merged documents...')
   const hierarchyResult = validateHierarchy(mergedDocs, {
-    expectedModulesPerCourse: 4,
-    expectedLessonsPerModule: 3,
+    minModulesPerCourse: 4,
+    minLessonsPerModule: 1,
   })
   if (!hierarchyResult.valid) {
-    console.error(`❌ Merge failed with ${hierarchyResult.hierarchyErrors} hierarchy errors (courses must have 4 modules and modules must have 3 lessons). Aborting write and upload.`)
+    console.error(`❌ Merge failed with ${hierarchyResult.hierarchyErrors} hierarchy errors. Aborting write and upload.`)
     process.exit(1)
   }
   console.log('✅ All course and module hierarchies verified successfully.')

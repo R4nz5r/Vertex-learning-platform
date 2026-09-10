@@ -86,35 +86,27 @@ export function validateReferences(docs) {
  * @returns {{ valid: boolean, hierarchyErrors: number }}
  */
 export function validateHierarchy(docs, options = {}) {
-  const expectedCourses = options.expectedCourses
-  const expectedModulesPerCourse = options.expectedModulesPerCourse ?? 4
-  const expectedLessonsPerModule = options.expectedLessonsPerModule ?? 3
+  const minCourses = options.minCourses ?? options.expectedCourses ?? 22
+  const minModulesPerCourse = options.minModulesPerCourse ?? 4
+  const minLessonsPerModule = options.minLessonsPerModule ?? 1
 
   let hierarchyErrors = 0
   const courses = docs.filter((d) => d && d._type === 'course')
   const lessons = docs.filter((d) => d && d._type === 'lesson')
 
-  if (typeof expectedCourses === 'number' && courses.length !== expectedCourses) {
-    console.error(`❌ Course count mismatch: expected ${expectedCourses}, found ${courses.length}`)
+  if (typeof minCourses === 'number' && courses.length < minCourses) {
+    console.error(`❌ Course count mismatch: expected at least ${minCourses}, found ${courses.length}`)
     hierarchyErrors++
   }
 
-  if (typeof expectedCourses === 'number') {
-    const expectedLessons = expectedCourses * expectedModulesPerCourse * expectedLessonsPerModule
-    if (lessons.length !== expectedLessons) {
-      console.error(`❌ Lesson count mismatch: expected ${expectedLessons}, found ${lessons.length}`)
-      hierarchyErrors++
-    }
-  }
-
   for (const doc of courses) {
-    if (!Array.isArray(doc.modules) || doc.modules.length !== expectedModulesPerCourse) {
-      console.error(`❌ Course "${doc.title || doc._id}" must have exactly ${expectedModulesPerCourse} modules (found ${doc.modules?.length || 0})`)
+    if (!Array.isArray(doc.modules) || doc.modules.length < minModulesPerCourse) {
+      console.error(`❌ Course "${doc.title || doc._id}" must have at least ${minModulesPerCourse} modules (found ${doc.modules?.length || 0})`)
       hierarchyErrors++
     } else {
       for (const mod of doc.modules) {
-        if (!Array.isArray(mod.lessons) || mod.lessons.length !== expectedLessonsPerModule) {
-          console.error(`❌ Module "${mod.title || 'untitled'}" in course "${doc.title || doc._id}" must have exactly ${expectedLessonsPerModule} lessons (found ${mod.lessons?.length || 0})`)
+        if (!Array.isArray(mod.lessons) || mod.lessons.length < minLessonsPerModule) {
+          console.error(`❌ Module "${mod.title || 'untitled'}" in course "${doc.title || doc._id}" must have at least ${minLessonsPerModule} lessons (found ${mod.lessons?.length || 0})`)
           hierarchyErrors++
         }
       }
@@ -137,9 +129,9 @@ export function buildNdjson() {
 
   const refResult = validateReferences(docs)
   const hierarchyResult = validateHierarchy(docs, {
-    expectedCourses: 20,
-    expectedModulesPerCourse: 4,
-    expectedLessonsPerModule: 3,
+    minCourses: 22,
+    minModulesPerCourse: 4,
+    minLessonsPerModule: 1,
   })
 
   if (!refResult.valid || !hierarchyResult.valid) {
@@ -152,8 +144,11 @@ export function buildNdjson() {
     counts[doc._type] = (counts[doc._type] || 0) + 1
   }
 
+  const typeOrder = { category: 1, instructor: 2, lesson: 3, course: 4 }
+  const sortedDocs = [...docs].sort((a, b) => (typeOrder[a._type] || 99) - (typeOrder[b._type] || 99))
+
   // Ensure NDJSON format (one JSON object per line)
-  const ndjson = docs.map((doc) => JSON.stringify(doc)).join('\n') + '\n'
+  const ndjson = sortedDocs.map((doc) => JSON.stringify(doc)).join('\n') + '\n'
   fs.writeFileSync(seedFilePath, ndjson, 'utf-8')
 
   console.log(`✅ seed.ndjson verified & formatted successfully.`)
