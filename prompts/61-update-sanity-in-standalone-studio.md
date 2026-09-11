@@ -1,14 +1,14 @@
 # Implementation Prompt 61: Update Sanity in Standalone Studio
 
 ## Goal
-Update Sanity dependencies in the standalone Studio workspace (`studio/`) to their latest compatible versions, resolving peer dependency mismatches with `@sanity/vision` and updating `@sanity/icons`, while ensuring TypeScript compilation, schema definitions, and studio tooling remain fully functional.
+Update Sanity dependencies in the standalone Studio workspace (`studio/`) to their latest compatible versions, resolving peer dependency mismatches by updating `@sanity/vision` to `^6.13.1` while retaining `@sanity/icons` at `^3.8.0` (maintaining root named exports with React 19/Sanity 6), ensuring TypeScript compilation, schema definitions, and studio tooling remain fully functional.
 
 ## Skills Read
 - `AGENTS.md` (Standalone Studio workspace architecture, checks, and independent deploy rules)
 - `sanity-best-practices` (`.agents/skills/sanity-best-practices/SKILL.md`)
 
 ## Code Inspected
-- `studio/package.json`: Contains `sanity` (currently `^6.13.1` following manual install), `@sanity/vision` (`^5.31.2` causing peer dependency warning `peer sanity@"^4.0.0-0 || ^5.0.0-0"`), `@sanity/icons` (`^3.8.0`), and React 19.
+- `studio/package.json`: Contains `sanity` (`^6.13.1`) and `@sanity/vision` (`^6.13.1` with 6.13.1 resolution; pre-change baseline was `^5.31.2` causing peer dependency warning `peer sanity@"^4.0.0-0 || ^5.0.0-0"`), `@sanity/icons` (`^3.8.0`), and React 19.
 - `studio/sanity.config.ts`: Imports `defineConfig`, `structureTool`, and `visionTool`.
 - `studio/sanity.cli.ts`: Defines CLI config and typegen paths.
 - `studio/tsconfig.json`: TypeScript configuration for Studio.
@@ -28,7 +28,7 @@ Update Sanity dependencies in the standalone Studio workspace (`studio/`) to the
 1. Update `dependencies` in `studio/package.json`:
    - `"sanity": "^6.13.1"`
    - `"@sanity/vision": "^6.13.1"`
-   - `"@sanity/icons": "^5.2.2"`
+   - `"@sanity/icons": "^3.8.0"` (retained)
 2. Run `npm install` in `studio/` without peer dependency warnings or overrides.
 3. Verify type safety with `npx tsc --noEmit` in `studio/`.
 4. Verify Studio build with `npm run build` in `studio/`.

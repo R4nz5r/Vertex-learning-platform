@@ -14,8 +14,8 @@ Import and publish the newly created "Ruby on Rails Modern Web Development" cour
 - Live Sanity `production` dataset: Verified currently contains 20 courses; needs the 21st course upserted.
 
 ## Decisions and Assumptions
-- Use the authenticated Sanity CLI administrator credentials (`C:\Users\User\.config\sanity\config.json`) to execute the safe import into the `production` dataset.
-- Use additive, non-destructive import so existing documents and edits remain intact.
+- Use a dedicated least-privilege write token (`SANITY_API_WRITE_TOKEN`) loaded through the project's secret-management interface (`.env.local` / process environment) to execute the safe import into the `production` dataset.
+- Use additive import that avoids deletes and preserves unseeded fields, but note that it may overwrite seeded fields on existing documents (`createIfNotExists` + `patch.set`).
 - Verify live Sanity dataset query confirms `course.ruby-on-rails-modern-web-development` and 12 lessons exist in the cloud dataset.
 
 ## Files Expected to Touch
@@ -27,8 +27,8 @@ Import and publish the newly created "Ruby on Rails Modern Web Development" cour
 3. Ensure Sanity Studio desk reflects the new Ruby on Rails course immediately.
 
 ## Security Considerations
-- Use existing authenticated CLI session without exposing or writing secrets to disk.
-- Mutation is additive and safe, preserving all existing documents.
+- Require dataset-scoped credentials (`SANITY_API_WRITE_TOKEN`) loaded through the secret-management interface without exposing secrets or persisting developer credentials to disk.
+- Mutations are additive and avoid deletes, but may overwrite seeded fields on existing documents.
 
 ## Acceptance Criteria
 - Live GROQ query `*[_type == "course" && slug.current == "ruby-on-rails-modern-web-development"][0]` returns the course document.

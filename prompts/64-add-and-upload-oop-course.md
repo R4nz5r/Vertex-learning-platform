@@ -35,6 +35,7 @@ Design, validate, and upload a comprehensive "Object-Oriented Programming: Princ
     - Lesson 4.1: Strategy and Command Patterns
     - Lesson 4.2: Observer and Event Notification Systems
     - Lesson 4.3: Refactoring Code Smells into Clean Object Design
+- Video verification: Every newly added YouTube video URL undergoes embedded-player playback verification (confirming embed permissions and streaming capability beyond a simple oEmbed 200 OK check) to prevent playback failures.
 - Dataset & Studio sync:
   - Append 1 course + 12 lessons to `studio/scripts/seed/seed.ndjson`.
   - Update `expectedCourses: 22` in `studio/scripts/seed/build-ndjson.mjs`.
@@ -51,12 +52,12 @@ Design, validate, and upload a comprehensive "Object-Oriented Programming: Princ
 2. Create 1 course document (`course.object-oriented-programming-design-patterns`) with summary, price ($79), popular flag, student count (15,800), 4 learning outcomes, category ref, instructor ref, and 4 modules referencing the 12 lessons.
 3. Update `build-ndjson.mjs` invariant baseline to 22 courses and 264 lessons.
 4. Execute `npm --prefix studio run seed:build` to validate all documents.
-5. Run safe additive upload to the live Sanity Cloud `production` dataset using authenticated administrator session.
+5. Run safe additive upload to the live Sanity Cloud `production` dataset using dedicated dataset-scoped write credentials (`SANITY_API_WRITE_TOKEN`) loaded through the secret-management interface.
 6. Verify live GROQ query confirms 22 courses in production.
 
 ## Security Considerations
-- Use authenticated CLI session without writing secrets to files.
-- Mutations are non-destructive (`createIfNotExists` + `patch.set`).
+- Require dataset-scoped write credentials (`SANITY_API_WRITE_TOKEN`) loaded through secret management (`.env.local` / process environment) rather than administrator sessions.
+- Mutations are additive and avoid deletes, but may overwrite seeded fields on existing documents (`createIfNotExists` + `patch.set`).
 
 ## Acceptance Criteria
 - `seed.ndjson` contains the OOP course and 12 lesson documents.

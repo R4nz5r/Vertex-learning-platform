@@ -1,7 +1,7 @@
 # Implementation Prompt 62: Add Ruby on Rails Course
 
 ## Goal
-Add a comprehensive, production-grade "Ruby on Rails Modern Web Development" course to the Vertex learning platform. The new course adheres to all established platform and Sanity content invariants: exactly 4 modules, exactly 3 lessons per module (12 lessons total), structured Portable Text notes, key points, learning outcomes, resources, video metadata, and associations with an existing category and instructor.
+Add a comprehensive, production-grade "Ruby on Rails Modern Web Development" course to the Vertex learning platform. For this course specifically, it is authored with exactly 4 modules and exactly 3 lessons per module (12 lessons total), while preserving the general builder behavior of requiring at least 4 modules and at least 1 lesson per module, with structured Portable Text notes, key points, learning outcomes, resources, video metadata, and associations with an existing category and instructor.
 
 ## Skills Read
 - `AGENTS.md` (Content modeling rules, 4 modules / 3 lessons invariant, lesson/course relationships)
@@ -46,8 +46,8 @@ Add a comprehensive, production-grade "Ruby on Rails Modern Web Development" cou
 1. Define 12 new lesson documents with unique IDs (`lesson.ruby-on-rails-*`), valid slugs, video URLs, thumbnails, durations, Portable Text notes, key points, proTips, and resources.
 2. Define 1 new course document (`course.ruby-on-rails-modern-web-development`) with summary, level (`intermediate`), price ($79), popular flag (`true`), student count (14,250), 4 learning outcomes, category ref, instructor ref, and 4 modules referencing the 12 lessons.
 3. Append the documents to `studio/scripts/seed/seed.ndjson`.
-4. Update `expectedCourses: 21` in `studio/scripts/seed/build-ndjson.mjs`.
-5. Run `npm --prefix studio run seed:build` to validate reference integrity and structural invariants (294 total documents: 11 categories, 11 instructors, 21 courses, 252 lessons).
+4. Update `expectedCourses: 22` (or `minCourses: 22`) in `studio/scripts/seed/build-ndjson.mjs` to match the 22-course seed and validation.
+5. Run `npm --prefix studio run seed:build` to validate reference integrity and structural invariants (295 total documents: 11 categories, 11 instructors, 21 courses, 252 lessons).
 6. Verify web workspace type checks with `npx tsc --noEmit`.
 
 ## Security Considerations

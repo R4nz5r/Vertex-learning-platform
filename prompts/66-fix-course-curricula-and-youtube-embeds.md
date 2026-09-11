@@ -21,7 +21,7 @@ Resolve playback and structural issues identified in the course catalog:
 - Video audit: Revealed 128 broken video URLs across courses 11–22 due to synthetic IDs.
 
 ## Decisions and Assumptions
-- Every replaced YouTube video URL will be verified via `https://www.youtube.com/oembed?url=...` returning HTTP `200 OK` before inclusion.
+- Every replacement YouTube video URL will undergo independent embedded-player playback verification (confirming embed permissions and streaming capability beyond a simple oEmbed 200 OK response) before inclusion.
 - OOP Course Structure:
   - Module 1: *Foundations of Object-Oriented Programming* (Encapsulation, Abstraction, Inheritance, Polymorphism)
   - Module 2: *SOLID: Single Responsibility Principle (SRP)*
@@ -51,14 +51,14 @@ Resolve playback and structural issues identified in the course catalog:
    - Retain 100% reference validation (`validateReferences`).
 2. Expand OOP course to include 5 distinct SOLID modules and replace all video URLs with verified live YouTube videos.
 3. Replace all video URLs in Ruby on Rails course with verified live YouTube videos.
-4. Replace broken video URLs across courses 11–20 with verified live YouTube videos.
+4. Replace broken video URLs across all video-audit failures (courses 11–22) using a data-driven failed-URL list with verified live YouTube videos.
 5. Run `npm --prefix studio run seed:build` to validate all documents and references.
 6. Run `safe-import.mjs` to sync all updated documents to the live Sanity `production` dataset.
 7. Verify `npx tsc --noEmit` passes with 0 errors.
 
 ## Security Considerations
 - All video URLs are public educational YouTube videos with standard iframe embedding allowed.
-- Mutation uses existing administrator auth without disk exposure of secrets.
+- Require dedicated dataset-scoped write token (`SANITY_API_WRITE_TOKEN`) loaded through secret management (`.env.local` / process environment); avoiding disk writes alone is not presented as sufficient access control.
 
 ## Acceptance Criteria
 - Video player on OOP and Ruby on Rails lessons loads and plays live YouTube videos without "Video unavailable" errors.
@@ -68,7 +68,7 @@ Resolve playback and structural issues identified in the course catalog:
 - `npx tsc --noEmit` exits with code 0.
 
 ## Checks to Run
-- Verification script testing `https://www.youtube.com/oembed` on all updated lesson videos (100% 200 OK).
+- Verification script testing embedded-player playback capability across all replaced lesson videos.
 - `npm --prefix studio run seed:build`
 - `safeImport()` live sync verification
 - `npx tsc --noEmit`
