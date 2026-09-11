@@ -122,11 +122,13 @@ export function CourseHero({
     ? urlFor(coverImage).width(800).height(800).fit("crop").url()
     : fallbackUrl;
 
+  const [prevInitialImageUrl, setPrevInitialImageUrl] = React.useState(initialImageUrl);
   const [currentSrc, setCurrentSrc] = React.useState<string | null>(initialImageUrl);
 
-  React.useEffect(() => {
+  if (prevInitialImageUrl !== initialImageUrl) {
+    setPrevInitialImageUrl(initialImageUrl);
     setCurrentSrc(initialImageUrl);
-  }, [initialImageUrl]);
+  }
 
   const handleImageError = () => {
     if (currentSrc !== fallbackUrl && fallbackUrl) {

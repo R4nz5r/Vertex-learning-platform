@@ -207,6 +207,7 @@ export default async function LessonDetailPage({
                 _id: lesson._id,
                 title: lesson.title,
                 slug: lesson.slug,
+                summary: lesson.summary,
                 videoUrl: lesson.videoUrl,
                 duration: lesson.duration,
                 freePreview: lesson.freePreview,

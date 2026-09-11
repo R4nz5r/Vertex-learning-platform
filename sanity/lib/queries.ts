@@ -25,6 +25,7 @@ const lessonCardFragment = /* groq */ `
   _id,
   title,
   "slug": slug.current,
+  summary,
   videoUrl,
   thumbnail {
     ${imageFragment}
@@ -173,6 +174,7 @@ export const LESSON_BY_SLUG_QUERY = defineQuery(/* groq */ `
     _id,
     title,
     "slug": slug.current,
+    summary,
     videoUrl,
     thumbnail {
       ${imageFragment}

@@ -52,6 +52,7 @@ interface LessonContentProps {
     _id: string;
     title: string;
     slug: string;
+    summary?: string | null;
     videoUrl?: string | null;
     duration?: number;
     freePreview?: boolean;
@@ -76,6 +77,55 @@ interface LessonContentProps {
   totalCourseLessons?: number;
 }
 
+/**
+ * Extract a clean one-line text summary for the lesson header.
+ * Checks for an explicit summary, extracts the first normal block from Portable Text notes,
+ * or falls back to the first key point or lesson title.
+ */
+function extractLessonSummary(lesson: {
+  summary?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  notes?: any;
+  title?: string;
+  keyPoints?: string[];
+}): string {
+  if (lesson.summary && lesson.summary.trim()) {
+    return lesson.summary.trim();
+  }
+
+  if (Array.isArray(lesson.notes) && lesson.notes.length > 0) {
+    const introBlock = lesson.notes.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b: any) =>
+        b?._type === "block" &&
+        (!b.style || b.style === "normal") &&
+        Array.isArray(b.children) &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        b.children.some((c: any) => c.text && c.text.trim().length > 0)
+    );
+
+    if (introBlock) {
+      const text = introBlock.children
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((c: any) => c.text || "")
+        .join("")
+        .trim();
+      if (text) return text;
+    }
+  }
+
+  if (lesson.keyPoints && lesson.keyPoints.length > 0 && lesson.keyPoints[0]) {
+    const firstPoint = lesson.keyPoints[0].trim();
+    return `In this lesson, you will learn how to ${
+      firstPoint.toLowerCase().startsWith("learn")
+        ? firstPoint.slice(5).trim()
+        : firstPoint
+    }.`;
+  }
+
+  return `Explore core principles, techniques, and practical examples in ${lesson.title || "this lesson"}.`;
+}
+
 export function LessonContent({
   lesson,
   course,
@@ -92,6 +142,7 @@ export function LessonContent({
   );
 
   const { studentCount: liveStudents } = useCourseStudentCount(course.slug);
+  const summaryText = extractLessonSummary(lesson);
   const progress = useCourseProgress(course.slug);
   const isCompleted = progress.isCourseCompleted || progress.completedLessons.includes(lesson.slug);
 
@@ -190,10 +241,11 @@ export function LessonContent({
         </div>
 
         {/* Short Summary Description */}
-        <p className="text-[15.5px] text-neutral-600 max-w-3xl leading-relaxed mb-4">
-          Learn how Next.js handles data fetching and caching in both Server and
-          Client Components.
-        </p>
+        {summaryText && (
+          <p className="text-[15.5px] text-neutral-600 max-w-3xl leading-relaxed mb-4">
+            {summaryText}
+          </p>
+        )}
 
         {/* Metadata Row */}
         <div className="flex flex-wrap items-center gap-5 text-[13.5px] text-neutral-600 font-medium">
@@ -279,10 +331,8 @@ export function LessonContent({
               <PortableTextRenderer value={lesson.notes} />
             ) : (
               <p className="text-[15px] sm:text-[15.5px] text-neutral-700 leading-relaxed">
-                In this lesson, you&apos;ll learn how Next.js handles data fetching and
-                caching in both Server and Client Components. We&apos;ll explore
-                different caching strategies and revalidation techniques to
-                build fast and scalable applications.
+                In this lesson, you&apos;ll explore key concepts and practical implementations
+                for {lesson.title}. Follow along with the video and review the key points and resources below.
               </p>
             )}
           </section>
