@@ -47,7 +47,7 @@ Add a comprehensive, production-grade "Ruby on Rails Modern Web Development" cou
 2. Define 1 new course document (`course.ruby-on-rails-modern-web-development`) with summary, level (`intermediate`), price ($79), popular flag (`true`), student count (14,250), 4 learning outcomes, category ref, instructor ref, and 4 modules referencing the 12 lessons.
 3. Append the documents to `studio/scripts/seed/seed.ndjson`.
 4. Update `expectedCourses: 22` (or `minCourses: 22`) in `studio/scripts/seed/build-ndjson.mjs` to match the 22-course seed and validation.
-5. Run `npm --prefix studio run seed:build` to validate reference integrity and structural invariants (295 total documents: 11 categories, 11 instructors, 21 courses, 252 lessons).
+5. Run `npm --prefix studio run seed:build` to validate reference integrity and structural invariants (295 total documents for the pre-import 21-course baseline: 11 categories, 11 instructors, 21 courses, 252 lessons).
 6. Verify web workspace type checks with `npx tsc --noEmit`.
 
 ## Security Considerations
@@ -58,7 +58,7 @@ Add a comprehensive, production-grade "Ruby on Rails Modern Web Development" cou
 ## Acceptance Criteria
 - `seed.ndjson` contains the new Ruby on Rails course and all 12 lesson documents.
 - `build-ndjson.mjs` validation passes with 0 missing references and 0 hierarchy errors.
-- Summary reflects: `{ category: 11, instructor: 11, course: 21, lesson: 252 }` (total: 295 documents).
+- Summary reflects the 21-course pre-import baseline: `{ category: 11, instructor: 11, course: 21, lesson: 252 }` (total: 295 documents).
 - `npx tsc --noEmit` exits with code 0 in both `studio/` and root web workspace.
 
 ## Checks to Run
